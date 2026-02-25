@@ -47,6 +47,8 @@ import edu.up.cs301.museumcaper.R;
  * @author Eric Imperio
  * @date Version 2020
  */
+
+// Colonel Mustard
 public abstract class GameMainActivity extends Activity implements
         View.OnClickListener {
     //Tag for Logging
