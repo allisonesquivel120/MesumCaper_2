@@ -38,7 +38,7 @@ public class MuseumCaperState extends GameState {
 
     // board info
     private Room[] room;
-    // private int[][]adjacecyMatrix; which rooms connect to which
+    // private int[][]adjacencyMatrix; // which rooms connect to which
 
     // die info
     private int[] diceValues;
@@ -68,6 +68,7 @@ public class MuseumCaperState extends GameState {
         {
             room[i] = new Room(i);
         }
+        //this.adjacencyMatrix = new int[7][7];
         // alarms
         this.alarmTriggered = new boolean[8];
         // dice
@@ -91,9 +92,9 @@ public class MuseumCaperState extends GameState {
 
         this.thiefRoomId = orig.thiefRoomId;
         this.thiefVisible = orig.thiefVisible;
-        this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
+        this.stolenPaintings = (ArrayList<Integer>) orig.stolenPaintings.clone();
 
-        this.detectiveRoomId = orig.detectiveRoomId;
+        this.detectiveRoomId = orig.detectiveRoomId.clone();
         // deep copy rooms
         this.room = new Room[orig.room.length];
         for(int i = 0; i <room.length; i++)
@@ -102,7 +103,10 @@ public class MuseumCaperState extends GameState {
         }
 
         this.alarmTriggered = orig.alarmTriggered;
-        this.diceValues = orig.diceValues;
+        this.diceValues = orig.diceValues.clone();
+
+        this.gameOver = orig.gameOver;
+        this.winnerId = orig.winnerId;
 
 
 	}
