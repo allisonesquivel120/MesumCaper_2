@@ -9,23 +9,22 @@ public class Room implements Serializable
     private int id;
     private boolean hasItem;
     private boolean hasAlarm;
-    private boolean alarmTriggered;
 
     public Room(int id)
     {
         this.id = id;
         this.hasItem = false;
         this.hasAlarm = false;
-        this.alarmTriggered = false;
     }
     public Room (Room orig)
     {
         this.id = orig.id;
         this.hasAlarm = orig.hasAlarm;;
         this.hasItem = orig.hasItem;
-        this.alarmTriggered = orig.alarmTriggered;
+
     }
 
+    // getters
     public int getId()
     {
         return id;
@@ -34,8 +33,20 @@ public class Room implements Serializable
     {
         return hasItem;
     }
-    public boolean HasAlarm()
+    public boolean hasAlarm()
     {
-        return
+        return hasAlarm;
+    }
+
+    // setters
+    public void setHasItem(boolean hasItem)
+    {
+        this.hasItem = hasItem;
+    }
+    public void setHasAlarm(boolean hasAlarm)
+    {
+        this.hasAlarm = hasAlarm;
     }
 }
+
+
