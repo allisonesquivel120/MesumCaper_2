@@ -36,4 +36,5 @@ public interface GamePlayer {
     //TESTING
     public GameMainActivity getActivity();
 
+    int getPlayerNum();
 }// interface GamePlayer

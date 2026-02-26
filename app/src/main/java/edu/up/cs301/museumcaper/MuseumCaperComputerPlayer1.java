@@ -55,4 +55,9 @@ public class MuseumCaperComputerPlayer1 extends GameComputerPlayer implements Ti
 		// send the move-action to the game
 		game.sendAction(new MuseumCaperMoveAction(this, move));
 	}
+
+    @Override
+    public int getPlayerNum() {
+        return 0;
+    }
 }
