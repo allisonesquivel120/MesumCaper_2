@@ -9,14 +9,14 @@ import edu.up.cs301.GameFramework.infoMessage.GameState;
 /**
  * This contains the state for the Museum Caper game. The state consist of simply
  * the value of the counter.
- * 
+ *
  * @author Farid, Jayden, and Allison
  * @version Feb. 2026
  */
 public class MuseumCaperState extends GameState {
-	
-	// to satisfy Serializable interface
-	private static final long serialVersionUID = 7737393762469851826L;
+
+    // to satisfy Serializable interface
+    private static final long serialVersionUID = 7737393762469851826L;
 
     /**
      * instance variables
@@ -54,9 +54,9 @@ public class MuseumCaperState extends GameState {
         this(3);
     }
 
-	public MuseumCaperState(int numPlayers)
+    public MuseumCaperState(int numPlayers)
     {
-		this.numPlayers = numPlayers;
+        this.numPlayers = numPlayers;
         this.playerTurn = 0; // thief always starts
         this.currentPhase = GamePhase.SETUP;
 
@@ -81,19 +81,19 @@ public class MuseumCaperState extends GameState {
         // board
         this.gameBoard = new char[][]
                 {
-                {'t', 't', 't', 'r', 'r', 'r', 'r', 'r', 'r', 't', 't', 't'},
-                {'t', 't', 't', 'r', 'r', 'r', 'r', 'r', 'r', 't', 't', 't'},
-                {'p', 'p', 'p', 'h', 'h', 'h', 'h', 'h', 'h', 'b', 'b', 'b'},
-                {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'b', 'b', 'b'},
-                {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'b', 'b', 'b'},
-                {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'h', 'h', 'h'},
-                {'h', 'h', 'h', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
-                {'y', 'y', 'y', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
-                {'y', 'y', 'y', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
-                {'y', 'y', 'y', 'h', 'h', 'h', 'h', 'h', 'h', 'g', 'g', 'g'},
-                {'t', 't', 't', 'd', 'd', 'h', 'h', 'h', 'h', 't', 't', 't'},
-                {'t', 't', 't', 'd', 'd', 'h', 'h', 'h', 'h', 't', 't', 't'}
-        };
+                        {'t', 't', 't', 'r', 'r', 'r', 'r', 'r', 'r', 't', 't', 't'},
+                        {'t', 't', 't', 'r', 'r', 'r', 'r', 'r', 'r', 't', 't', 't'},
+                        {'p', 'p', 'p', 'h', 'h', 'h', 'h', 'h', 'h', 'b', 'b', 'b'},
+                        {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'b', 'b', 'b'},
+                        {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'b', 'b', 'b'},
+                        {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'h', 'h', 'h'},
+                        {'h', 'h', 'h', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
+                        {'y', 'y', 'y', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
+                        {'y', 'y', 'y', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
+                        {'y', 'y', 'y', 'h', 'h', 'h', 'h', 'h', 'h', 'g', 'g', 'g'},
+                        {'t', 't', 't', 'd', 'd', 'h', 'h', 'h', 'h', 't', 't', 't'},
+                        {'t', 't', 't', 'd', 'd', 'h', 'h', 'h', 'h', 't', 't', 't'}
+                };
 
         // alarms
         this.alarmTriggered = new boolean[8];
@@ -103,14 +103,14 @@ public class MuseumCaperState extends GameState {
         // game status
         this.gameOver = false;
         this.winnerId = -1;
-	}
-	/**
-	 * copy constructor; makes a copy of the original object
-	 * 
-	 * @param orig
-	 * 		the object from which the copy should be made
-	 */
-	public MuseumCaperState(MuseumCaperState orig, int playerId) {
+    }
+    /**
+     * copy constructor; makes a copy of the original object
+     *
+     * @param orig
+     * 		the object from which the copy should be made
+     */
+    public MuseumCaperState(MuseumCaperState orig, int playerId) {
         this.playerTurn = orig.playerTurn;
         this.numPlayers = orig.numPlayers;
         this.currentPhase = orig.currentPhase;
@@ -158,16 +158,13 @@ public class MuseumCaperState extends GameState {
         this.winnerId = orig.winnerId;
 
 
-        }
+    }
 
     /**
-     *
      * Action Methods
-     * @return
      */
 
     // GENERAL ACTIONS
-
     public boolean makeConnectAction(MuseumCaperConnectAction a)
     {
         return true;
@@ -283,36 +280,37 @@ public class MuseumCaperState extends GameState {
 
     /**
      * Getter Methods
-      */
-        public char[][] getGameBoard()
-        {
-            return gameBoard;
-        }
-        public int getPlayerTurn()
-        {
-            return playerTurn;
-        }
-        public boolean isGameOver()
-        {
-            return gameOver;
-        }
-        public int getWinnerId()
-        {
-            return winnerId;
-        }
-
-        @Override
-        public String toString()
-        {
-            return "MuseumCaperState{" +
-                    "\n  playerTurn=" + playerTurn +
-                    ",\n  currentPhase=" + currentPhase +
-                    ",\n  thiefRoomId=" + thiefRoomId +
-                    ",\n  thiefVisible=" + thiefVisible +
-                    ",\n  stolenPaintings=" + stolenPaintings +
-                    ",\n  detectiveRoomId=" + Arrays.toString(detectiveRoomId) +
-                    ",\n  gameOver=" + gameOver +
-                    ",\n  winnerId=" + winnerId +
-                    "\n}";
-        }
+     */
+    public char[][] getGameBoard()
+    {
+        return gameBoard;
     }
+    public int getPlayerTurn()
+    {
+        return playerTurn;
+    }
+    public boolean isGameOver()
+    {
+        return gameOver;
+    }
+    public int getWinnerId()
+    {
+        return winnerId;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "MuseumCaperState{" +
+                "\n  playerTurn=" + playerTurn +
+                ",\n  currentPhase=" + currentPhase +
+                ",\n  thiefRoomId=" + thiefRoomId +
+                ",\n  thiefVisible=" + thiefVisible +
+                ",\n  stolenPaintings=" + stolenPaintings +
+                ",\n  detectiveRoomId=" + Arrays.toString(detectiveRoomId) +
+                ",\n  gameOver=" + gameOver +
+                ",\n  winnerId=" + winnerId +
+                "\n}";
+    }
+}
+

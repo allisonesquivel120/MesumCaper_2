@@ -7,37 +7,17 @@ import edu.up.cs301.GameFramework.actionMessage.GameAction;
 import android.util.Log;
 
 /**
- * A class that represents the state of a game. In our counter game, the only
- * relevant piece of information is the value of the game's counter. The
- * CounterState object is therefore very simple.
- * 
- * @author Steven R. Vegdahl
- * @author Andrew M. Nuxoll
- * @version July 2013
+ * A class that represents the state of a game.
+ *
+ * @author Allison E.
+ * @author Jayden H.
+ * @author Farid S.
+ * @version Feb 2026
  */
 public class MuseumCaperLocalGame extends LocalGame {
 
-	// When a counter game is played, any number of players. The first player
-	// is trying to get the counter value to TARGET_MAGNITUDE; the second player,
-	// if present, is trying to get the counter to -TARGET_MAGNITUDE. The
-	// remaining players are neither winners nor losers, but can interfere by
-	// modifying the counter.
-	public static final int TARGET_MAGNITUDE = 10;
-
 	// the game's state
 	private MuseumCaperState gameState;
-	
-	/**
-	 * can this player move
-	 * 
-	 * @return
-	 * 		true, because all player are always allowed to move at all times,
-	 * 		as this is a fully asynchronous game
-	 */
-	@Override
-	protected boolean canMove(int playerIdx) {
-		return true;
-	}
 
 	/**
 	 * This ctor should be called when a new counter game is started
@@ -45,37 +25,95 @@ public class MuseumCaperLocalGame extends LocalGame {
 	public MuseumCaperLocalGame(GameState state) {
 		// initialize the game state, with the counter value starting at 0
 		if (! (state instanceof MuseumCaperState)) {
-			state = new MuseumCaperState(0);
+			state = new MuseumCaperState();
 		}
 		this.gameState = (MuseumCaperState)state;
 		super.state = state;
 	}
+    @Override
+    protected boolean canMove(int playerIdx)
+    {
+        // only the current players turn can move
+        return playerIdx == gameState.getPlayerTurn();
+    }
 
-	/**
-	 * The only type of GameAction that should be sent is CounterMoveAction
-	 */
-	@Override
-	protected boolean makeMove(GameAction action) {
-		Log.i("action", action.getClass().toString());
-		
-		if (action instanceof MuseumCaperMoveAction) {
-		
-			// cast so that we Java knows it's a CounterMoveAction
-			MuseumCaperMoveAction cma = (MuseumCaperMoveAction)action;
+    @Override
+    protected boolean makeMove(GameAction action) {
 
-			// Update the counter values based upon the action
-			int result = gameState.getCounter() + (cma.isPlus() ? 1 : -1);
-			gameState.setCounter(result);
-			
-			// denote that this was a legal/successful move
-			return true;
-		}
-		else {
-			// denote that this was an illegal move
-			return false;
-		}
-	}//makeMove
-	
+        // ----- GUARD ------
+
+        // general actions
+        if (action instanceof MuseumCaperChooseNumberPlayerAction) {
+            return gameState.makeChooseNumberPlayersAction((MuseumCaperChooseNumberPlayerAction) action);
+        }
+        if (action instanceof MuseumCaperSetNameAction) {
+            return gameState.makeSetNameAction((MuseumCaperSetNameAction) action);
+        }
+        if (action instanceof MuseumCaperConnectAction) {
+            return gameState.makeConnectAction((MuseumCaperConnectAction) action);
+        }
+
+        // move
+        if (action instanceof MuseumCaperGuardMoveAction) {
+            return gameState.makeGuardMoveAction((MuseumCaperGuardMoveAction) action);
+        }
+        // end player turn
+        if (action instanceof MuseumCaperGuardEndTurnAction) {
+            MuseumCaperGuardEndTurnAction a = (MuseumCaperGuardEndTurnAction) action;
+            return gameState.makeGuardEndTurnAction(new MuseumCaperGuardEndTurnAction(a.getPlayer()));
+        }
+        // rolling dice for movement
+        if (action instanceof MuseumCaperRollDiceForMovementAction) {
+            return gameState.makeRollDiceForMovementAction((MuseumCaperRollDiceForMovementAction) action);
+        }
+        // rolling dice for camera
+        if (action instanceof MuseumCaperRollDieForCamerasAction) {
+            return gameState.makeRollDiceForCamerasAction((MuseumCaperRollDieForCamerasAction) action);
+        }
+        // marking the stolen paintings
+        if (action instanceof MuseumCaperMarkStolenPaintingsAction)
+        {
+            return gameState.makeMakrStolenPaintingsAction((MuseumCaperMarkStolenPaintingsAction) action);
+        }
+        // choosing direction to move in
+        if(action instanceof MuseumCaperChooseDirectionAction)
+        {
+            return gameState.makeChooseDirectionAction((MuseumCaperChooseDirectionAction) action);
+        }
+        // choosing question for camera/eye dice
+        if(action instanceof MuseumCaperChooseQuestionAction)
+        {
+            return gameState.makeChooseQuestionAction((MuseumCaperChooseQuestionAction) action);
+
+        }
+
+        // ------ THIEF ------
+        // rejecting the question of motion detector
+        if(action instanceof MuseumCaperReject2MotionDetectorAction)
+        {
+            return gameState.makeReject2MotionDetectorAction((MuseumCaperReject2MotionDetectorAction) action);
+        }
+        // thief movement [ 3 steps only ]
+        if (action instanceof MuseumCaperThiefMoveAction) {
+            return gameState.makeThiefMoveAction((MuseumCaperThiefMoveAction) action);
+        }
+        // disabling camera(s)
+        if (action instanceof MuseumCaperDisableCameraAction) {
+            return gameState.makeDisableCameraAction((MuseumCaperDisableCameraAction) action);
+        }
+        // cutting all power --> cameras
+        if (action instanceof MuseumCaperCutPowerAction) {
+            return gameState.makeCutPowerAction((MuseumCaperCutPowerAction) action);
+        }
+        if (action instanceof MuseumCaperEndTurnAction) {
+            MuseumCaperEndTurnAction a = (MuseumCaperEndTurnAction) action;
+            return gameState.makeEndTurnAction(new MuseumCaperEndTurnAction(a.getPlayer()));
+        }
+        // unknown action
+        return false;
+
+    }
+
 	/**
 	 * send the updated state to a given player
 	 */
@@ -84,44 +122,33 @@ public class MuseumCaperLocalGame extends LocalGame {
 		// this is a perfect-information game, so we'll make a
 		// complete copy of the state to send to the player
 		p.sendInfo(new MuseumCaperState(this.gameState, p.getPlayerNum()));
-		
+
 	}//sendUpdatedSate
-	
+
 	/**
 	 * Check if the game is over. It is over, return a string that tells
 	 * who the winner(s), if any, are. If the game is not over, return null;
-	 * 
+     *
+     * thief == 0
+	 *
 	 * @return
 	 * 		a message that tells who has won the game, or null if the
 	 * 		game is not over
 	 */
 	@Override
-	protected String checkIfGameOver() {
-		
-		// get the value of the counter
-		int counterVal = this.gameState.getCounter();
-		
-		if (counterVal >= TARGET_MAGNITUDE) {
-			// counter has reached target magnitude, so return message that
-			// player 0 has won.
-			return playerNames[0]+" has won.";
-		}
-		else if (counterVal <= -TARGET_MAGNITUDE) {
-			// counter has reached negative of target magnitude; if there
-			// is a second player, return message that this player has won,
-			// otherwise that the first player has lost
-			if (playerNames.length >= 2) {
-				return playerNames[1]+" has won.";
-			}
-			else {
-				return playerNames[0]+" has lost.";
-			}
-		}else {
-			// game is still between the two limit: return null, as the game
-			// is not yet over
-			return null;
-		}
+	protected String checkIfGameOver()
+    {
 
-	}
+        if (gameState.isGameOver()) {
+            int winner = gameState.getWinnerId();
+            if (winner == 0) {
+                return "Thief wins — escaped with the painting!";
+            } else {
+                return "Detectives win - the thief was not caught!";
+            }
+        }
+
+        return null;
+    }
 
 }// class CounterLocalGame
