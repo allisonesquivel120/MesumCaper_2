@@ -4,7 +4,6 @@ import edu.up.cs301.GameFramework.infoMessage.GameState;
 import edu.up.cs301.GameFramework.players.GamePlayer;
 import edu.up.cs301.GameFramework.LocalGame;
 import edu.up.cs301.GameFramework.actionMessage.GameAction;
-import android.util.Log;
 
 /**
  * A class that represents the state of a game.
@@ -59,8 +58,7 @@ public class MuseumCaperLocalGame extends LocalGame {
         }
         // end player turn
         if (action instanceof MuseumCaperGuardEndTurnAction) {
-            MuseumCaperGuardEndTurnAction a = (MuseumCaperGuardEndTurnAction) action;
-            return gameState.makeGuardEndTurnAction(new MuseumCaperGuardEndTurnAction(a.getPlayer()));
+            return gameState.makeGuardEndTurnAction((MuseumCaperGuardEndTurnAction) action);
         }
         // rolling dice for movement
         if (action instanceof MuseumCaperRollDiceForMovementAction) {
@@ -73,7 +71,7 @@ public class MuseumCaperLocalGame extends LocalGame {
         // marking the stolen paintings
         if (action instanceof MuseumCaperMarkStolenPaintingsAction)
         {
-            return gameState.makeMakrStolenPaintingsAction((MuseumCaperMarkStolenPaintingsAction) action);
+            return gameState.makeMarkStolenPaintingsAction((MuseumCaperMarkStolenPaintingsAction) action);
         }
         // choosing direction to move in
         if(action instanceof MuseumCaperChooseDirectionAction)
@@ -106,8 +104,7 @@ public class MuseumCaperLocalGame extends LocalGame {
             return gameState.makeCutPowerAction((MuseumCaperCutPowerAction) action);
         }
         if (action instanceof MuseumCaperEndTurnAction) {
-            MuseumCaperEndTurnAction a = (MuseumCaperEndTurnAction) action;
-            return gameState.makeEndTurnAction(new MuseumCaperEndTurnAction(a.getPlayer()));
+            return gameState.makeEndTurnAction((MuseumCaperEndTurnAction) action);
         }
         // unknown action
         return false;

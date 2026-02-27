@@ -148,5 +148,10 @@ public class ProxyPlayer implements GamePlayer {
     public GameMainActivity getActivity(){
         return null;
     }
+
+    @Override
+    public int getPlayerNum() {
+        return 0;
+    }
 }
 

@@ -2,7 +2,15 @@ package edu.up.cs301.museumcaper;
 
 import edu.up.cs301.GameFramework.actionMessage.GameAction;
 import edu.up.cs301.GameFramework.players.GamePlayer;
-
+/**
+ * General action class for player, cna chose which direction to go in
+ *
+ * @author Farid S.
+ * @author Jayden H.
+ * @author Allison E.
+ *
+ * @version Feb. 2026
+ */
 public class MuseumCaperChooseDirectionAction extends GameAction
 {
     private int direction;

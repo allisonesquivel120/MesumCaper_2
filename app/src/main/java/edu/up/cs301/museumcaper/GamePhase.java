@@ -6,11 +6,14 @@ package edu.up.cs301.museumcaper;
  * - what actions are allowed
  * - what actions aren't allowed
  *
- * @author Jayden, Farid, Allison
- * @date Feb 2026
+ * @author Jayden H.
+ * @author Farid S.
+ * @author Allison E.
+ * @version Feb 2026
  */
 public enum GamePhase {
     SETUP,
+    PLAY,
     THIEF_MOVE,
     DETECTIVE_MOVE,
     ALARM_PHASE,

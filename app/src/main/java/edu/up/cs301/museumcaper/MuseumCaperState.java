@@ -10,7 +10,10 @@ import edu.up.cs301.GameFramework.infoMessage.GameState;
  * This contains the state for the Museum Caper game. The state consist of simply
  * the value of the counter.
  *
- * @author Farid, Jayden, and Allison
+ * @author Farid S.
+ * @author Jayden H.
+ * @author Allison E.
+ *
  * @version Feb. 2026
  */
 public class MuseumCaperState extends GameState {
@@ -36,9 +39,11 @@ public class MuseumCaperState extends GameState {
 
     // alarm system
     private boolean[] alarmTriggered;
+    private boolean powerOn;
 
     // board info
     private Room[] room;
+    private char[][] gameBoard;
 
     // die info
     private int[] diceValues;
@@ -47,8 +52,7 @@ public class MuseumCaperState extends GameState {
     private boolean gameOver;
     private int winnerId; // -1 = no ones won yet
 
-    private char[][] gameBoard;
-
+    // default constructor
     public MuseumCaperState()
     {
         this(3);
@@ -58,7 +62,7 @@ public class MuseumCaperState extends GameState {
     {
         this.numPlayers = numPlayers;
         this.playerTurn = 0; // thief always starts
-        this.currentPhase = GamePhase.SETUP;
+        this.currentPhase = GamePhase.PLAY;
 
         // thief
         this.thiefRoomId = 0;
@@ -69,7 +73,7 @@ public class MuseumCaperState extends GameState {
         int numDetectives = Math.max(0, numPlayers -1);
         this.detectiveRoomId = new int[numPlayers - 1];
         for (int i = 0; i < detectiveRoomId.length; i++) {
-            detectiveRoomId[i] = 6; // assigns each detective a starting room
+            detectiveRoomId[i] = 6; // assigns each detective a starting room [ room 6 ]
         }
 
         // rooms
@@ -118,6 +122,7 @@ public class MuseumCaperState extends GameState {
         // thief visibility
         if (playerId == 0) {
             this.thiefRoomId = orig.thiefRoomId;
+            this.thiefVisible = orig.thiefVisible;
             this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
         } else {
             if(orig.thiefVisible)
@@ -129,9 +134,9 @@ public class MuseumCaperState extends GameState {
             {
                 this.thiefRoomId = -1; // hidden from guards
             }
+            this.thiefVisible = orig.thiefVisible;
             this.stolenPaintings = new ArrayList<>();
         }
-
 
         // detectives
         this.detectiveRoomId = orig.detectiveRoomId.clone();
@@ -144,7 +149,7 @@ public class MuseumCaperState extends GameState {
 
         // alarms
         this.alarmTriggered = orig.alarmTriggered.clone();
-
+        this.powerOn = orig.powerOn;
         // dice
         this.diceValues = orig.diceValues.clone();
 
@@ -156,8 +161,6 @@ public class MuseumCaperState extends GameState {
 
         this.gameOver = orig.gameOver;
         this.winnerId = orig.winnerId;
-
-
     }
 
     /**
@@ -167,14 +170,21 @@ public class MuseumCaperState extends GameState {
     // GENERAL ACTIONS
     public boolean makeConnectAction(MuseumCaperConnectAction a)
     {
+        // track connected players if needed to
         return true;
     }
     public boolean makeChooseDirectionAction(MuseumCaperChooseDirectionAction a)
     {
+        // placeholder : chosen direction
         return true;
     }
-    public boolean makeMakrStolenPaintingsAction(MuseumCaperMarkStolenPaintingsAction s)
+    public boolean makeMarkStolenPaintingsAction(MuseumCaperMarkStolenPaintingsAction a)
     {
+       int paintingId = a.getPaintingId();
+       if(!stolenPaintings.contains(paintingId))
+        {
+            stolenPaintings.add(paintingId);
+        }
         return true;
     }
     public boolean makeChooseNumberPlayersAction(MuseumCaperChooseNumberPlayerAction a)
@@ -187,8 +197,13 @@ public class MuseumCaperState extends GameState {
         if (n < 2 || n > 3) {
             return false;
         }
-        // update state
+        // update state --> resize detective array
         this.numPlayers = n;
+        this.detectiveRoomId = new int[]{Math.max(0, n - 1)};
+        for(int i = 0; i < detectiveRoomId.length; i++)
+        {
+            detectiveRoomId[i] = 6;
+        }
         return true;
     }
 
@@ -203,12 +218,14 @@ public class MuseumCaperState extends GameState {
             return false;
         }
         playerTurn = (playerTurn + 1) % numPlayers;
+        currentPhase = GamePhase.PLAY;
         return true;
     }
-    // GUARD ACTIONS [ human players ]
 
+    // GUARD ACTIONS [ human players ]
     public boolean makeRestorePowerAction(MuseumCaperRestorePowerAction a)
     {
+       powerOn = true;
         for(Room r : room)
         {
             r.setPowerOn(true);
@@ -217,14 +234,14 @@ public class MuseumCaperState extends GameState {
     }
     public boolean makeRollDiceForMovementAction(MuseumCaperRollDiceForMovementAction a)
     {
-        diceValues[0] = 3;
-        diceValues[1] = 4;
+        diceValues[0] = (int)(Math.random() * 6) + 1;
+        diceValues[1] = (int)(Math.random() * 6) + 1;
         return true;
     }
     public boolean makeRollDiceForCamerasAction(MuseumCaperRollDieForCamerasAction a)
     {
-        diceValues[0] = 2;
-        diceValues[1] =5;
+        diceValues[0] = (int)(Math.random() * 6) + 1;
+        diceValues[1] = (int)(Math.random() * 6) + 1;
         return true;
     }
     public boolean makeGuardEndTurnAction(MuseumCaperGuardEndTurnAction a)
@@ -238,7 +255,12 @@ public class MuseumCaperState extends GameState {
         {
             return false;
         }
-        detectiveRoomId[guardIndex] = a.getTargetRoomId();
+        int targetRoom= a.getTargetRoomId();
+        if(targetRoom < 0 || targetRoom >= room.length)
+        {
+            return false;
+        }
+        detectiveRoomId[guardIndex] = targetRoom;
         return true;
     }
     public boolean makeChooseQuestionAction(MuseumCaperChooseQuestionAction a)
@@ -252,11 +274,17 @@ public class MuseumCaperState extends GameState {
         {
             return false;
         }
+        int targetRoom = a.getTargetRoomId();
+        if(targetRoom < 0 || targetRoom >= room.length)
+        {
+            return false;
+        }
         thiefRoomId = a.getTargetRoomId();
         return true;
     }
     public boolean makeCutPowerAction(MuseumCaperCutPowerAction a)
     {
+        powerOn = false;
         for(Room r : room)
         {
             r.setPowerOn(false);
@@ -268,7 +296,7 @@ public class MuseumCaperState extends GameState {
         int roomId = a.getRoomId();
         if(roomId < 0 || roomId >= room.length)
         {
-            return true;
+            return false;
         }
         room[roomId].setHasCamera(false);
         return true;
@@ -296,6 +324,14 @@ public class MuseumCaperState extends GameState {
     public int getWinnerId()
     {
         return winnerId;
+    }
+    public int[] getDiceValues()
+    {
+        return diceValues.clone();
+    }
+    public int[] getDetectiveRoomId()
+    {
+        return detectiveRoomId.clone();
     }
 
     @Override
