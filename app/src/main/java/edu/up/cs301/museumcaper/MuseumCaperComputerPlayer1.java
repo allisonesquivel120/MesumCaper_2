@@ -50,10 +50,11 @@ public class MuseumCaperComputerPlayer1 extends GameComputerPlayer implements Ti
 		if (Math.random() >= 0.05) return; // do nothing 95% of the time
 
 		// "flip a coin" to determine whether to increment or decrement
-		boolean move = Math.random() >= 0.5;
+		int targetRow = (int)(Math.random() *8);
+        int targetCol = (int)(Math.random() * 8);
 		
 		// send the move-action to the game
-		game.sendAction(new MuseumCaperGuardMoveAction(this, move));
+		game.sendAction(new MuseumCaperGuardMoveAction(this, targetRow, targetCol));
 	}
 
     @Override
