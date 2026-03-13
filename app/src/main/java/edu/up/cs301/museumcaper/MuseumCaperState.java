@@ -2,6 +2,7 @@ package edu.up.cs301.museumcaper;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 
 import edu.up.cs301.GameFramework.infoMessage.GameState;
 
@@ -20,37 +21,59 @@ public class MuseumCaperState extends GameState {
 
     // to satisfy Serializable interface
     private static final long serialVersionUID = 7737393762469851826L;
+    /**
+     * Fastest sequence of moves to end the game:
+     *
+     * 1. The guard lands on the same room/tile as the thief.
+     *
+     * This is the shortest legal win condition in this implementation.
+     */
 
     /**
      * instance variables
      */
+
+    // board information
+    public static final int NUM_ROWS = 12; // number of rows in the grid
+    public static final int NUM_COLS = 12; // number of cols in the grid
+
+    // board info
+    private RoomType[][] roomGrid; // room system (for dialogue box)
+    private char[][] gameBoard;
+
     // player + turn info
     private int playerTurn;
     private int numPlayers;
     private GamePhase currentPhase;
 
     // thief info
-    private int thiefRoomId; // the current room thief is inside [ detectives can't see this ]
+    private int thiefRow; // the current room (row) thief is inside [ detectives can't see this ]
+    private int thiefCol;
+    private int thiefRoomId; // compute from tile
     private boolean thiefVisible;
     private ArrayList<Integer> stolenPaintings; // list of paintings the thief as stolen
 
-    // detective info
-    private int[] detectiveRoomId; // detective's current room location
+    // guard info [tile based]
+    private int[] guardRow;
+    private int[] guardCol;
+    private int[] guardRoomId;
 
-    // alarm system
-    private boolean[] alarmTriggered;
-    private boolean powerOn;
 
-    // board info
-    private Room[] room;
-    private char[][] gameBoard;
+    // cameras + alarm system
+    private boolean[][] cameras;
 
-    // die info
-    private int[] diceValues;
+    private boolean[] alarmsTriggered;
+
+    // die 1 + die 2 info
+    private int movementRoll; // die 1
+    private int questionRoll; // die 2
 
     // game status
     private boolean gameOver;
     private int winnerId; // -1 = no ones won yet
+
+    private transient Random rng;
+
 
     // default constructor
     public MuseumCaperState()
@@ -58,61 +81,65 @@ public class MuseumCaperState extends GameState {
         this(3);
     }
 
-    public MuseumCaperState(int numPlayers)
-    {
+    public MuseumCaperState(int numPlayers) {
         this.numPlayers = numPlayers;
         this.playerTurn = 0; // thief always starts
-        this.currentPhase = GamePhase.PLAY;
+        this.currentPhase = GamePhase.SETUP;
 
-        // thief
-        this.thiefRoomId = 0;
+        this.rng = new Random();
+
+        // thief starts bottom right [default]
+        this.thiefRow = 11;
+        this.thiefCol = 11;
         this.thiefVisible = false;
         this.stolenPaintings = new ArrayList<>();
 
-        // detectives
-        int numDetectives = Math.max(0, numPlayers -1);
-        this.detectiveRoomId = new int[numPlayers - 1];
-        for (int i = 0; i < detectiveRoomId.length; i++) {
-            detectiveRoomId[i] = 6; // assigns each detective a starting room [ room 6 ]
+        // guard start top left [default]
+        int numGuard = Math.max(0, numPlayers - 1);
+        this.guardRow = new int[numGuard];
+        this.guardCol = new int[numGuard];
+        for (int i = 0; i < numGuard; i++) {
+            guardRow[i] = 0;
+            guardCol[i] = 0;
         }
 
-        // rooms
-        this.room = new Room[7];
-        for(int i =0; i < room.length; i++)
-        {
-            room[i] = new Room(i);
-        }
-        // board
-        this.gameBoard = new char[][]
-                {
-                        {'t', 't', 't', 'r', 'r', 'r', 'r', 'r', 'r', 't', 't', 't'},
-                        {'t', 't', 't', 'r', 'r', 'r', 'r', 'r', 'r', 't', 't', 't'},
-                        {'p', 'p', 'p', 'h', 'h', 'h', 'h', 'h', 'h', 'b', 'b', 'b'},
-                        {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'b', 'b', 'b'},
-                        {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'b', 'b', 'b'},
-                        {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'h', 'h', 'h'},
-                        {'h', 'h', 'h', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
-                        {'y', 'y', 'y', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
-                        {'y', 'y', 'y', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
-                        {'y', 'y', 'y', 'h', 'h', 'h', 'h', 'h', 'h', 'g', 'g', 'g'},
-                        {'t', 't', 't', 'd', 'd', 'h', 'h', 'h', 'h', 't', 't', 't'},
-                        {'t', 't', 't', 'd', 'd', 'h', 'h', 'h', 'h', 't', 't', 't'}
-                };
+        this.gameBoard = new char[][]{
+                {'t', 't', 't', 'r', 'r', 'r', 'r', 'r', 'r', 't', 't', 't'},
+                {'t', 't', 't', 'r', 'r', 'r', 'r', 'r', 'r', 't', 't', 't'},
+                {'p', 'p', 'p', 'h', 'h', 'h', 'h', 'h', 'h', 'b', 'b', 'b'},
+                {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'b', 'b', 'b'},
+                {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'b', 'b', 'b'},
+                {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'h', 'h', 'h'},
+                {'h', 'h', 'h', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
+                {'y', 'y', 'y', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
+                {'y', 'y', 'y', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
+                {'y', 'y', 'y', 'h', 'h', 'h', 'h', 'h', 'h', 'g', 'g', 'g'},
+                {'t', 't', 't', 'd', 'd', 'h', 'h', 'h', 'h', 't', 't', 't'},
+                {'t', 't', 't', 'd', 'd', 'h', 'h', 'h', 'h', 't', 't', 't'}
+        };
+        // convert board char into roomType grid
+        initRoomGrid();
 
-        // alarms
-        this.alarmTriggered = new boolean[8];
+        // alarmsTriggered + cameras
+        this.cameras = new boolean[NUM_ROWS][NUM_COLS];
+        this.alarmsTriggered = new boolean[NUM_ROWS];
+
         // dice
-        this.diceValues = new int[]{1,1};
+        this.movementRoll = 0;
+        this.questionRoll = 0;
 
         // game status
         this.gameOver = false;
         this.winnerId = -1;
+
+        // find initial room Ids
+        updateRoomIds();
     }
+
     /**
      * copy constructor; makes a copy of the original object
      *
-     * @param orig
-     * 		the object from which the copy should be made
+     * @param orig from which the copy should be made
      */
     public MuseumCaperState(MuseumCaperState orig, int playerId) {
         this.playerTurn = orig.playerTurn;
@@ -121,46 +148,93 @@ public class MuseumCaperState extends GameState {
 
         // thief visibility
         if (playerId == 0) {
-            this.thiefRoomId = orig.thiefRoomId;
+            this.thiefRow = orig.thiefRow;
+            this.thiefCol = orig.thiefCol;
             this.thiefVisible = orig.thiefVisible;
             this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
         } else {
             if(orig.thiefVisible)
             {
                 // guards only see the thief if visible
-                this.thiefRoomId = orig.thiefRoomId;
+                this.thiefRow = orig.thiefRow;
+                this.thiefCol = orig.thiefCol;
             }
             else
             {
-                this.thiefRoomId = -1; // hidden from guards
+                this.thiefRow = -1; // hidden from guards
+                this.thiefCol = -1;
             }
             this.thiefVisible = orig.thiefVisible;
             this.stolenPaintings = new ArrayList<>();
         }
 
-        // detectives
-        this.detectiveRoomId = orig.detectiveRoomId.clone();
+        // guard position
+        this.guardRow = orig.guardRow.clone();
+        this.guardCol = orig.guardCol.clone();
 
-        // deep copy of rooms
-        this.room = new Room[orig.room.length];
-        for (int a = 0; a < room.length; a++) {
-            this.room[a] = new Room(orig.room[a]);
-        }
+        // room ids [computed from tiles]
+        this.guardRoomId = orig.guardRoomId.clone();
+        this.thiefRoomId = orig.thiefRoomId;
 
-        // alarms
-        this.alarmTriggered = orig.alarmTriggered.clone();
-        this.powerOn = orig.powerOn;
-        // dice
-        this.diceValues = orig.diceValues.clone();
-
-//        // game board (deep copy)
+        // game board (deep copy)
         this.gameBoard = new char[orig.gameBoard.length][orig.gameBoard[0].length];
         for (int i = 0; i < gameBoard.length; i++) {
             this.gameBoard[i] = orig.gameBoard[i].clone();
         }
 
+        // room grid [deep copy]
+        this.roomGrid = new RoomType[NUM_ROWS][NUM_COLS];
+        for (int r = 0; r < NUM_ROWS; r++) {
+            this.roomGrid[r] = orig.roomGrid[r].clone();
+        }
+
+
+        // cameras [deep copy]
+        this.cameras = new boolean[NUM_ROWS][NUM_COLS];
+        for(int r = 0; r < NUM_ROWS; r++)
+        {
+            this.cameras[r] = orig.cameras[r];
+        }
+
+        // alarms
+        this.alarmsTriggered = orig.alarmsTriggered.clone();
+
+        // dice
+        this.movementRoll = orig.movementRoll;
+        this.questionRoll = orig.questionRoll;
+
+        // game status
         this.gameOver = orig.gameOver;
         this.winnerId = orig.winnerId;
+
+        this.rng = new Random();
+    }
+    // HELPER METHODS
+    /**
+     * convert gameBoard characters into RoomType(s)
+     */
+    private void initRoomGrid()
+    {
+        RoomType[][] converted = new RoomType[NUM_ROWS][NUM_COLS];
+        for(int r = 0; r < NUM_ROWS; r++)
+        {
+            for(int c = 0; c < NUM_COLS; c++)
+            {
+                converted[r][c] = RoomType.fromChar(gameBoard[r][c]);
+            }
+        }
+    }
+
+    /**
+     * compute room ids from tile positions
+     */
+    private void updateRoomIds()
+    {
+        thiefRoomId = roomGrid[thiefRow][thiefCol].ordinal();
+        for(int i = 0; i < guardRow.length; i++)
+        {
+            guardRoomId[i] = roomGrid[guardRow[i]][guardCol[i]].ordinal();
+        }
     }
 
     /**
@@ -180,29 +254,10 @@ public class MuseumCaperState extends GameState {
     }
     public boolean makeMarkStolenPaintingsAction(MuseumCaperMarkStolenPaintingsAction a)
     {
-       int paintingId = a.getPaintingId();
-       if(!stolenPaintings.contains(paintingId))
+        int paintingId = a.getPaintingId();
+        if(!stolenPaintings.contains(paintingId))
         {
             stolenPaintings.add(paintingId);
-        }
-        return true;
-    }
-    public boolean makeChooseNumberPlayersAction(MuseumCaperChooseNumberPlayerAction a)
-    {
-        if(currentPhase != GamePhase.SETUP) {
-            return false;
-        }
-        int n = a.getNumPlayers();
-        // ranges
-        if (n < 2 || n > 3) {
-            return false;
-        }
-        // update state --> resize detective array
-        this.numPlayers = n;
-        this.detectiveRoomId = new int[]{Math.max(0, n - 1)};
-        for(int i = 0; i < detectiveRoomId.length; i++)
-        {
-            detectiveRoomId[i] = 6;
         }
         return true;
     }
@@ -222,88 +277,155 @@ public class MuseumCaperState extends GameState {
         return true;
     }
 
-    // GUARD ACTIONS [ human players ]
-    public boolean makeRestorePowerAction(MuseumCaperRestorePowerAction a)
+
+    public boolean makeRollDiceAction(MuseumCaperRollDiceAction a)
     {
-       powerOn = true;
-        for(Room r : room)
+        if(playerTurn != 1)
         {
-            r.setPowerOn(true);
+            return false;
         }
-        return true;
+
+        switch (a.getType())
+        {
+            case MOVEMENT:
+                if(currentPhase != GamePhase.GUARD_ROLL) return false;
+                movementRoll = rng.nextInt(6) + 1;
+                currentPhase = GamePhase.GUARD_MOVE;
+                return true;
+            case QUESTION:
+                questionRoll = rng.nextInt(6) + 1;
+                return true;
+
+        }
+        return false;
     }
-    public boolean makeRollDiceForMovementAction(MuseumCaperRollDiceForMovementAction a)
-    {
-        diceValues[0] = (int)(Math.random() * 6) + 1;
-        diceValues[1] = (int)(Math.random() * 6) + 1;
-        return true;
-    }
-    public boolean makeRollDiceForCamerasAction(MuseumCaperRollDieForCamerasAction a)
-    {
-        diceValues[0] = (int)(Math.random() * 6) + 1;
-        diceValues[1] = (int)(Math.random() * 6) + 1;
-        return true;
-    }
-    public boolean makeGuardEndTurnAction(MuseumCaperGuardEndTurnAction a)
-    {
-        return makeEndTurnAction(new MuseumCaperEndTurnAction(a.getPlayer()));
-    }
+
     public boolean makeGuardMoveAction(MuseumCaperGuardMoveAction a)
     {
+        if(currentPhase != GamePhase.GUARD_MOVE)
+        {
+            return false;
+        }
+        if(playerTurn != 1)
+        {
+            return false;
+        }
         int guardIndex = a.getPlayer().getPlayerNum() - 1;
-        if(guardIndex < 0 || guardIndex >= detectiveRoomId.length)
+        if(guardIndex < 0 || guardIndex >= guardRow.length)
         {
             return false;
         }
-        int targetRoom= a.getTargetRoomId();
-        if(targetRoom < 0 || targetRoom >= room.length)
+        int tr = a.getTargetRow();
+        int tc = a.getTargetCol();
+
+        if(!inBounds(tr,tc))
         {
             return false;
         }
-        detectiveRoomId[guardIndex] = targetRoom;
+
+        int dist = manhattan(guardRow[guardIndex], guardCol[guardIndex],tr,tc);
+        if(dist > movementRoll)
+        {
+            return false;
+        }
+
+        guardRow[guardIndex] = tr;
+        guardCol[guardIndex] = tc;
+
+        updateRoomIds();
+
+        // winner check
+        if (tr == thiefRow && tc == thiefCol) {
+            gameOver = true;
+            winnerId = guardIndex + 1;
+            currentPhase = GamePhase.ENDGAME;
+            return true;
+        }
+
+        // end guard turn move to thief AI
+        playerTurn = 0;
+        currentPhase = GamePhase.THIEF_TURN;
+        runThiefAI();
+
         return true;
+
+
     }
     public boolean makeChooseQuestionAction(MuseumCaperChooseQuestionAction a)
     {
         return true;
     }
-    // THIEF ACTIONS [ AI ]
-    public boolean makeThiefMoveAction(MuseumCaperThiefMoveAction a)
+
+    // thief AI movement
+    void runThiefAI()
     {
-        if(a.getPlayer().getPlayerNum() != 0)
+        if(gameOver)
         {
-            return false;
+            return;
         }
-        int targetRoom = a.getTargetRoomId();
-        if(targetRoom < 0 || targetRoom >= room.length)
+
+        int steps = rng.nextInt(3) + 1;
+        for(int a = 0; a < 10; a++)
         {
-            return false;
+            int r = thiefRow;
+            int c = thiefCol;
+
+            for(int s = 0; s < steps; s++)
+            {
+                int dir = rng.nextInt(4);
+                switch (dir){
+                    case 0: r--; break;
+                    case 1: r++; break;
+                    case 2: c--; break;
+                    case 3: c++; break;
+                }
+                if(!inBounds(r,c))
+                {
+                    break;
+                }
+            }
+            if(!inBounds(r,c))
+            {
+                continue;
+            }
+            if(cameras[r][c])
+            {
+                continue;
+            }
+            thiefRow = r;
+            thiefCol = c;
+            break;
         }
-        thiefRoomId = a.getTargetRoomId();
-        return true;
+        // disable camera if standing on one
+        if (cameras[thiefRow][thiefCol]) {
+            cameras[thiefRow][thiefCol] = false;
+        }
+
+        updateRoomIds();
+        updateAlarms();
+
+        playerTurn = 1;
+        currentPhase = GamePhase.GUARD_ROLL;
+        movementRoll = 0;
+
     }
-    public boolean makeCutPowerAction(MuseumCaperCutPowerAction a)
-    {
-        powerOn = false;
-        for(Room r : room)
-        {
-            r.setPowerOn(false);
+
+    // HELPER METHODS
+    private void updateAlarms() {
+        for (int r = 0; r < NUM_ROWS; r++) {
+            for (int c = 0; c < NUM_COLS; c++) {
+                int idx = r * NUM_COLS + c;
+                alarmsTriggered[idx] = cameras[r][c] && (r == thiefRow && c == thiefCol);
+            }
         }
-        return true;
     }
-    public boolean makeDisableCameraAction(MuseumCaperDisableCameraAction a)
-    {
-        int roomId = a.getRoomId();
-        if(roomId < 0 || roomId >= room.length)
-        {
-            return false;
-        }
-        room[roomId].setHasCamera(false);
-        return true;
+
+    private boolean inBounds(int r, int c) {
+        return r >= 0 && r < NUM_ROWS && c >= 0 && c < NUM_COLS;
     }
-    public boolean makeReject2MotionDetectorAction(MuseumCaperReject2MotionDetectorAction a)
-    {
-        return true;
+
+    private int manhattan(int r1, int c1, int r2, int c2) {
+        return Math.abs(r1 - r2) + Math.abs(c1 - c2);
     }
 
     /**
@@ -313,40 +435,72 @@ public class MuseumCaperState extends GameState {
     {
         return gameBoard;
     }
-    public int getPlayerTurn()
+    public int getThiefRow()
     {
-        return playerTurn;
+        return thiefRow;
     }
-    public boolean isGameOver()
+    public int getThiefCol()
     {
+        return thiefCol;
+    }
+    public int[] getGuardRow()
+    {
+        return guardRow.clone();
+    }
+    public int[] getGuardCol()
+    {
+        return guardCol.clone();
+    }
+    public boolean[][] getCameras()
+    {
+        return cameras;
+    }
+    public boolean[] getAlarmTriggered()
+    {
+        return alarmsTriggered.clone();
+    }
+    public int getMovementRoll()
+    {
+        return movementRoll;
+    }
+    public int getQuestionRoll()
+    {
+        return questionRoll;
+    }
+    public int getThiefRoomId()
+    {
+        return thiefRoomId;
+    }
+    public int[] getGuardRoomId()
+    { return guardRoomId.clone(); }
+
+    public boolean isGameOver() {
         return gameOver;
     }
-    public int getWinnerId()
-    {
+
+    public int getWinnerId() {
         return winnerId;
     }
-    public int[] getDiceValues()
-    {
-        return diceValues.clone();
+    public int getPlayerTurn() {
+        return playerTurn;
     }
-    public int[] getDetectiveRoomId()
-    {
-        return detectiveRoomId.clone();
-    }
+
+
 
     @Override
     public String toString()
     {
         return "MuseumCaperState{" +
                 "\n  playerTurn=" + playerTurn +
-                ",\n  currentPhase=" + currentPhase +
-                ",\n  thiefRoomId=" + thiefRoomId +
-                ",\n  thiefVisible=" + thiefVisible +
-                ",\n  stolenPaintings=" + stolenPaintings +
-                ",\n  detectiveRoomId=" + Arrays.toString(detectiveRoomId) +
+                ",\n  thief=(" + thiefRow + "," + thiefCol + ")" +
+                ",\n  guards=" + Arrays.toString(guardRow) + " x " + Arrays.toString(guardCol) +
+                ",\n  movementRoll=" + movementRoll +
+                ",\n  questionRoll=" + questionRoll +
                 ",\n  gameOver=" + gameOver +
                 ",\n  winnerId=" + winnerId +
                 "\n}";
+
     }
+
 }
 

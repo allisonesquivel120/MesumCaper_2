@@ -32,6 +32,11 @@ public class MuseumCaperLocalGame extends LocalGame {
     @Override
     protected boolean canMove(int playerIdx)
     {
+        // thief cant move manually
+        if(playerIdx == 0)
+        {
+            return false;
+        }
         // only the current players turn can move
         return playerIdx == gameState.getPlayerTurn();
     }
@@ -42,41 +47,31 @@ public class MuseumCaperLocalGame extends LocalGame {
         // ----- GUARD ------
 
         // general actions
-        if (action instanceof MuseumCaperChooseNumberPlayerAction) {
-            return gameState.makeChooseNumberPlayersAction((MuseumCaperChooseNumberPlayerAction) action);
-        }
+
         if (action instanceof MuseumCaperSetNameAction) {
             return gameState.makeSetNameAction((MuseumCaperSetNameAction) action);
         }
         if (action instanceof MuseumCaperConnectAction) {
             return gameState.makeConnectAction((MuseumCaperConnectAction) action);
         }
-
         // move
         if (action instanceof MuseumCaperGuardMoveAction) {
-            return gameState.makeGuardMoveAction((MuseumCaperGuardMoveAction) action);
+            boolean success = gameState.makeGuardMoveAction((MuseumCaperGuardMoveAction) action);
+
+            if(success && !gameState.isGameOver())
+            {
+                gameState.runThiefAI();
+            }
+            return success;
         }
-        // end player turn
-        if (action instanceof MuseumCaperGuardEndTurnAction) {
-            return gameState.makeGuardEndTurnAction((MuseumCaperGuardEndTurnAction) action);
-        }
-        // rolling dice for movement
-        if (action instanceof MuseumCaperRollDiceForMovementAction) {
-            return gameState.makeRollDiceForMovementAction((MuseumCaperRollDiceForMovementAction) action);
-        }
-        // rolling dice for camera
-        if (action instanceof MuseumCaperRollDieForCamerasAction) {
-            return gameState.makeRollDiceForCamerasAction((MuseumCaperRollDieForCamerasAction) action);
+        // dice
+        if (action instanceof MuseumCaperRollDiceAction) {
+            return gameState.makeRollDiceAction((MuseumCaperRollDiceAction) action);
         }
         // marking the stolen paintings
         if (action instanceof MuseumCaperMarkStolenPaintingsAction)
         {
             return gameState.makeMarkStolenPaintingsAction((MuseumCaperMarkStolenPaintingsAction) action);
-        }
-        // choosing direction to move in
-        if(action instanceof MuseumCaperChooseDirectionAction)
-        {
-            return gameState.makeChooseDirectionAction((MuseumCaperChooseDirectionAction) action);
         }
         // choosing question for camera/eye dice
         if(action instanceof MuseumCaperChooseQuestionAction)
@@ -84,33 +79,19 @@ public class MuseumCaperLocalGame extends LocalGame {
             return gameState.makeChooseQuestionAction((MuseumCaperChooseQuestionAction) action);
 
         }
-
-        // ------ THIEF ------
-        // rejecting the question of motion detector
-        if(action instanceof MuseumCaperReject2MotionDetectorAction)
+        if (action instanceof MuseumCaperEndTurnAction)
         {
-            return gameState.makeReject2MotionDetectorAction((MuseumCaperReject2MotionDetectorAction) action);
-        }
-        // thief movement [ 3 steps only ]
-        if (action instanceof MuseumCaperThiefMoveAction) {
-            return gameState.makeThiefMoveAction((MuseumCaperThiefMoveAction) action);
-        }
-        // disabling camera(s)
-        if (action instanceof MuseumCaperDisableCameraAction) {
-            return gameState.makeDisableCameraAction((MuseumCaperDisableCameraAction) action);
-        }
-        // cutting all power --> cameras
-        if (action instanceof MuseumCaperCutPowerAction) {
-            return gameState.makeCutPowerAction((MuseumCaperCutPowerAction) action);
-        }
-        if (action instanceof MuseumCaperEndTurnAction) {
-            return gameState.makeEndTurnAction((MuseumCaperEndTurnAction) action);
+            boolean success = gameState.makeEndTurnAction((MuseumCaperEndTurnAction)action);
+            if(success && !gameState.isGameOver())
+            {
+                gameState.runThiefAI();
+            }
+            return success;
         }
         // unknown action
         return false;
 
     }
-
 	/**
 	 * send the updated state to a given player
 	 */

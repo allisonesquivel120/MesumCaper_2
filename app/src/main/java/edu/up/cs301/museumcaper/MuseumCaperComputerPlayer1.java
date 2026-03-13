@@ -53,7 +53,7 @@ public class MuseumCaperComputerPlayer1 extends GameComputerPlayer implements Ti
 		boolean move = Math.random() >= 0.5;
 		
 		// send the move-action to the game
-		game.sendAction(new MuseumCaperMoveAction(this, move));
+		game.sendAction(new MuseumCaperGuardMoveAction(this, move));
 	}
 
     @Override
