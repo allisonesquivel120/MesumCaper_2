@@ -15,15 +15,18 @@ public class MuseumCaperGuardMoveAction extends GameAction
 {
     private final int targetRow;
     private final int targetCol;
+    private final int guardIndex;
     /**
      * constructor for GameAction
      *
-     * @param player the player who created the action
+     * @param player     the player who created the action
+     * @param guardIndex
      */
-    public MuseumCaperGuardMoveAction(GamePlayer player, int targetRow, int targetCol) {
+    public MuseumCaperGuardMoveAction(GamePlayer player, int targetRow, int targetCol, int guardIndex) {
         super(player);
         this.targetRow = targetRow;
         this.targetCol = targetCol;
+        this.guardIndex = guardIndex;
     }
 
     public int getTargetRow()
@@ -34,8 +37,9 @@ public class MuseumCaperGuardMoveAction extends GameAction
     {
         return targetCol;
     }
-
-
-
+    public int getGuardIndex()
+    {
+        return guardIndex;
+    }
 
 }

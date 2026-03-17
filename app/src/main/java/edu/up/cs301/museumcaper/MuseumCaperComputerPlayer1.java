@@ -21,13 +21,12 @@ public class MuseumCaperComputerPlayer1 extends GameComputerPlayer implements Ti
      * @param name
      * 		the player's name
      */
-    public MuseumCaperComputerPlayer1(String name) {
+    private int guardIndex; // which guard the AI controls
+
+    public MuseumCaperComputerPlayer1(String name, int guardIndex) {
         // invoke superclass constructor
         super(name);
-        
-        // start the timer, ticking 20 times per second
-        getTimer().setInterval(50);
-        getTimer().start();
+        this.guardIndex = guardIndex;
     }
     
     /**
@@ -38,27 +37,45 @@ public class MuseumCaperComputerPlayer1 extends GameComputerPlayer implements Ti
      */
 	@Override
 	protected void receiveInfo(GameInfo info) {
-		// Do nothing, as we ignore all state in deciding our next move. It
-		// depends totally on the timer and random numbers.
-	}
-	
-	/**
-	 * callback method: the timer ticked
-	 */
-	protected void timerTicked() {
-		// 5% of the time, increment or decrement the counter
-		if (Math.random() >= 0.05) return; // do nothing 95% of the time
+        if (!(info instanceof MuseumCaperState)) return;
 
-		// "flip a coin" to determine whether to increment or decrement
-		int targetRow = (int)(Math.random() *8);
-        int targetCol = (int)(Math.random() * 8);
-		
-		// send the move-action to the game
-		game.sendAction(new MuseumCaperGuardMoveAction(this, targetRow, targetCol));
-	}
+        MuseumCaperState state = (MuseumCaperState) info;
+
+        // Only act on this guard's turn and during GUARD_MOVE
+        if (state.getPlayerTurn() != (guardIndex + 1)) return;
+        if (state.getCurrentPhase() != GamePhase.GUARD_MOVE) return;
+
+        int row = state.getGuardRow(guardIndex);
+        int col = state.getGuardCol(guardIndex);
+
+        int thiefRow = state.getThiefRow();
+        int thiefCol = state.getThiefCol();
+
+        int targetRow = row;
+        int targetCol = col;
+
+        // Move towards thief if visible, else random
+        if (thiefRow != -1 && thiefCol != -1) {
+            if (row < thiefRow) targetRow++;
+            else if (row > thiefRow) targetRow--;
+            else if (col < thiefCol) targetCol++;
+            else if (col > thiefCol) targetCol--;
+        } else {
+            if (Math.random() < 0.5) targetRow = row + (Math.random() < 0.5 ? -1 : 1);
+            else targetCol = col + (Math.random() < 0.5 ? -1 : 1);
+        }
+
+        // keep within bounds
+        if (targetRow < 0) targetRow = 0;
+        if (targetRow >= MuseumCaperState.NUM_ROWS) targetRow = MuseumCaperState.NUM_ROWS - 1;
+        if (targetCol < 0) targetCol = 0;
+        if (targetCol >= MuseumCaperState.NUM_COLS) targetCol = MuseumCaperState.NUM_COLS - 1;
+
+        game.sendAction(new MuseumCaperGuardMoveAction(this, guardIndex, targetRow, targetCol));
+    }
 
     @Override
     public int getPlayerNum() {
-        return 0;
+        return guardIndex + 1; // guard starts at 1
     }
 }

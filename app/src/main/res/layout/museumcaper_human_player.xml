@@ -585,6 +585,7 @@
                     android:fontFamily="serif"
                     android:text="Rules" />
 
+
             </LinearLayout>
 
         </LinearLayout>

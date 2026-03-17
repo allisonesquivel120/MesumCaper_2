@@ -147,6 +147,8 @@ public class MuseumCaperState extends GameState {
         this.playerTurn = orig.playerTurn;
         this.numPlayers = orig.numPlayers;
         this.currentPhase = orig.currentPhase;
+
+        // copy player names
         this.playerNames = new String[orig.playerNames.length];
         for(int i = 0; i < playerNames.length; i++)
         {
@@ -154,11 +156,13 @@ public class MuseumCaperState extends GameState {
         }
 
         // thief visibility
+        this.thiefVisible = orig.thiefVisible;
         if (playerId == 0) {
             this.thiefRow = orig.thiefRow;
             this.thiefCol = orig.thiefCol;
-            this.thiefVisible = orig.thiefVisible;
+            // thief sees all the stolen paintings
             this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
+
         } else {
             if(orig.thiefVisible)
             {
@@ -171,13 +175,13 @@ public class MuseumCaperState extends GameState {
                 this.thiefRow = -1; // hidden from guards
                 this.thiefCol = -1;
             }
-            this.thiefVisible = orig.thiefVisible;
-            this.stolenPaintings = new ArrayList<>();
+            // guard also sees stolen paintings
+            this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
         }
 
-        // guard position
-        this.guardRow = orig.guardRow;//.clone()
-        this.guardCol = orig.guardCol;//.clone()
+        // guard position [deep copy]
+        this.guardRow = orig.guardRow.clone();
+        this.guardCol = orig.guardCol.clone();
 
         // room ids [computed from tiles]
         this.guardRoomId = orig.guardRoomId.clone();
@@ -214,6 +218,7 @@ public class MuseumCaperState extends GameState {
         this.gameOver = orig.gameOver;
         this.winnerId = orig.winnerId;
 
+        // for future rolls
         this.rng = new Random();
     }
     // HELPER METHODS
@@ -342,7 +347,7 @@ public class MuseumCaperState extends GameState {
         {
             return false;
         }
-        int guardIndex = a.getPlayer().getPlayerNum() - 1;
+        int guardIndex = a.getGuardIndex();
         if(guardIndex < 0 || guardIndex >= guardRow.length)
         {
             return false;
@@ -559,6 +564,16 @@ public class MuseumCaperState extends GameState {
         thiefRow = row;
         thiefCol = col;
     }
+    public void setGuardPosition(int guardIndex, int row, int col) {
+        if (guardIndex < 0 || guardIndex >= guardRow.length) {
+            throw new IllegalArgumentException("Invalid guard index: " + guardIndex);
+        }
+        if (row < 0 || row >= NUM_ROWS || col < 0 || col >= NUM_COLS) {
+            throw new IllegalArgumentException("Invalid row/col: " + row + "/" + col);
+        }
+        guardRow[guardIndex] = row;
+        guardCol[guardIndex] = col;
+    }
     public GamePhase getCurrentPhase() {
         return currentPhase;
     }
@@ -569,9 +584,6 @@ public class MuseumCaperState extends GameState {
     public void setPlayerNames(int index, String name) {
         playerNames[index] = name;
     }
-
-
-
 
     @Override
     public String toString()

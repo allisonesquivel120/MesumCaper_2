@@ -18,7 +18,7 @@ public class MuseumCaperRollDiceAction extends GameAction {
      * @param player the player who created the action
      * @param type the type of dice rolled
      */
-    private final DiceType type;
+    private final DiceType type; // stores what kind of die to roll [question or movement]
     public MuseumCaperRollDiceAction(GamePlayer player, DiceType type)
     {
         super(player);
