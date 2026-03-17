@@ -14,7 +14,7 @@ import edu.up.cs301.GameFramework.players.GamePlayer;
 
 public class MuseumCaperMarkStolenPaintingsAction extends GameAction
 {
-    private int paintingId;
+    private final int paintingId;
     /**
      * constructor for GameAction
      *

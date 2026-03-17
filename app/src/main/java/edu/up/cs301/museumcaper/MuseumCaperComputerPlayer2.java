@@ -128,14 +128,15 @@ public class MuseumCaperComputerPlayer2 extends MuseumCaperComputerPlayer1 {
 		activityForGui.setContentView(R.layout.museumcaper_human_player);
 
 		// remember who our text view is, for updating the counter value
-		this.counterValueTextView =
-				(TextView) activityForGui.findViewById(R.id.counterValueTextView);
-
-		// disable the buttons, since they will have no effect anyway
-		Button plusButton = (Button)activityForGui.findViewById(R.id.plusButton);
-		plusButton.setEnabled(false);
-		Button minusButton = (Button)activityForGui.findViewById(R.id.minusButton);
-		minusButton.setEnabled(false);
+//	    Error, removed
+//		this.counterValueTextView =
+//				(TextView) activityForGui.findViewById(R.id.counterValueTextView);
+//
+//		// disable the buttons, since they will have no effect anyway
+//		Button plusButton = (Button)activityForGui.findViewById(R.id.plusButton);
+//		plusButton.setEnabled(false);
+//		Button minusButton = (Button)activityForGui.findViewById(R.id.minusButton);
+//		minusButton.setEnabled(false);
 
 		// if the state is non=null, update the display
 		if (currentGameState != null) {

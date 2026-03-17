@@ -13,14 +13,14 @@ import edu.up.cs301.GameFramework.players.GamePlayer;
  */
 public class MuseumCaperChooseDirectionAction extends GameAction
 {
-    private int direction;
+    private final int direction;
 
     /**
      * constructor for GameAction
      *
      * @param player the player who created the action
      */
-    public MuseumCaperChooseDirectionAction(GamePlayer player) {
+    public MuseumCaperChooseDirectionAction(GamePlayer player, int direction) {
         super(player);
         this.direction = direction;
     }

@@ -34,7 +34,7 @@ public class MuseumCaperState extends GameState {
      */
 
     // board information
-    public static final int NUM_ROWS = 12; // number of rows in the grid
+    public static final int NUM_ROWS = 11; // number of rows in the grid
     public static final int NUM_COLS = 12; // number of cols in the grid
 
     // board info
@@ -42,6 +42,7 @@ public class MuseumCaperState extends GameState {
     private char[][] gameBoard;
 
     // player + turn info
+    private String[] playerNames = new String[3];
     private int playerTurn;
     private int numPlayers;
     private GamePhase currentPhase;
@@ -88,19 +89,20 @@ public class MuseumCaperState extends GameState {
 
         this.rng = new Random();
 
-        // thief starts bottom right [default]
-        this.thiefRow = 11;
+        // thief starts from the green room entrance [default]
+        this.thiefRow = 7;
         this.thiefCol = 11;
         this.thiefVisible = false;
         this.stolenPaintings = new ArrayList<>();
 
-        // guard start top left [default]
+        // guard start int the top left of the white room [default]
+        // randomize eventually
         int numGuard = Math.max(0, numPlayers - 1);
         this.guardRow = new int[numGuard];
         this.guardCol = new int[numGuard];
         for (int i = 0; i < numGuard; i++) {
-            guardRow[i] = 0;
-            guardCol[i] = 0;
+            guardRow[i] = 3;
+            guardCol[i] = 4;
         }
 
         this.gameBoard = new char[][]{
@@ -112,7 +114,6 @@ public class MuseumCaperState extends GameState {
                 {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'h', 'h', 'h'},
                 {'h', 'h', 'h', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
                 {'y', 'y', 'y', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
-                {'y', 'y', 'y', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
                 {'y', 'y', 'y', 'h', 'h', 'h', 'h', 'h', 'h', 'g', 'g', 'g'},
                 {'t', 't', 't', 'd', 'd', 'h', 'h', 'h', 'h', 't', 't', 't'},
                 {'t', 't', 't', 'd', 'd', 'h', 'h', 'h', 'h', 't', 't', 't'}
@@ -122,7 +123,7 @@ public class MuseumCaperState extends GameState {
 
         // alarmsTriggered + cameras
         this.cameras = new boolean[NUM_ROWS][NUM_COLS];
-        this.alarmsTriggered = new boolean[NUM_ROWS];
+        this.alarmsTriggered = new boolean[NUM_ROWS * NUM_COLS];
 
         // dice
         this.movementRoll = 0;
@@ -133,6 +134,7 @@ public class MuseumCaperState extends GameState {
         this.winnerId = -1;
 
         // find initial room Ids
+        guardRoomId = new int[numGuard];
         updateRoomIds();
     }
 
@@ -145,6 +147,11 @@ public class MuseumCaperState extends GameState {
         this.playerTurn = orig.playerTurn;
         this.numPlayers = orig.numPlayers;
         this.currentPhase = orig.currentPhase;
+        this.playerNames = new String[orig.playerNames.length];
+        for(int i = 0; i < playerNames.length; i++)
+        {
+            this.playerNames[i] = orig.playerNames[i];
+        }
 
         // thief visibility
         if (playerId == 0) {
@@ -169,8 +176,8 @@ public class MuseumCaperState extends GameState {
         }
 
         // guard position
-        this.guardRow = orig.guardRow.clone();
-        this.guardCol = orig.guardCol.clone();
+        this.guardRow = orig.guardRow;//.clone()
+        this.guardCol = orig.guardCol;//.clone()
 
         // room ids [computed from tiles]
         this.guardRoomId = orig.guardRoomId.clone();
@@ -193,7 +200,7 @@ public class MuseumCaperState extends GameState {
         this.cameras = new boolean[NUM_ROWS][NUM_COLS];
         for(int r = 0; r < NUM_ROWS; r++)
         {
-            this.cameras[r] = orig.cameras[r];
+            this.cameras[r] = orig.cameras[r].clone();
         }
 
         // alarms
@@ -215,14 +222,15 @@ public class MuseumCaperState extends GameState {
      */
     private void initRoomGrid()
     {
-        RoomType[][] converted = new RoomType[NUM_ROWS][NUM_COLS];
+        roomGrid = new RoomType[NUM_ROWS][NUM_COLS];
         for(int r = 0; r < NUM_ROWS; r++)
         {
             for(int c = 0; c < NUM_COLS; c++)
             {
-                converted[r][c] = RoomType.fromChar(gameBoard[r][c]);
+                roomGrid[r][c] = RoomType.fromChar(gameBoard[r][c]);
             }
         }
+
     }
 
     /**
@@ -244,11 +252,23 @@ public class MuseumCaperState extends GameState {
     // GENERAL ACTIONS
     public boolean makeConnectAction(MuseumCaperConnectAction a)
     {
-        // track connected players if needed to
+        if(gameOver)
+        {
+            return false;
+        }
+        // getting plater number of the player who sent action
+        int playerId = a.getPlayer().getPlayerNum();
+        // checking if player ID is valid
+        if(playerId < 0 || playerId >= numPlayers)
+        {
+            return false;
+        }
+        // means that all checks have been passed = action is allowed
         return true;
     }
     public boolean makeChooseDirectionAction(MuseumCaperChooseDirectionAction a)
     {
+        int dir = a.getDirection();
         // placeholder : chosen direction
         return true;
     }
@@ -264,6 +284,9 @@ public class MuseumCaperState extends GameState {
 
     public boolean makeSetNameAction(MuseumCaperSetNameAction a)
     {
+        int playerId = a.getPlayer().getPlayerNum();
+        String name = a.getName();
+        playerNames[playerId] = name;
         return true;
     }
     public boolean makeEndTurnAction(MuseumCaperEndTurnAction a)
@@ -272,8 +295,12 @@ public class MuseumCaperState extends GameState {
         {
             return false;
         }
+        if(a.getPlayer().getPlayerNum() != playerTurn)
+        {
+            return false;
+        }
         playerTurn = (playerTurn + 1) % numPlayers;
-        currentPhase = GamePhase.PLAY;
+        currentPhase = GamePhase.START_TURN;
         return true;
     }
 
@@ -293,11 +320,16 @@ public class MuseumCaperState extends GameState {
                 currentPhase = GamePhase.GUARD_MOVE;
                 return true;
             case QUESTION:
-                questionRoll = rng.nextInt(6) + 1;
-                return true;
-
+                if(currentPhase != GamePhase.GUARD_QUESTION)
+                {
+                    questionRoll = rng.nextInt(6)+1;
+                    currentPhase = GamePhase.GUARD_ASK;
+                    return true;
+                }
+            default:
+                return false;
         }
-        return false;
+
     }
 
     public boolean makeGuardMoveAction(MuseumCaperGuardMoveAction a)
@@ -353,6 +385,13 @@ public class MuseumCaperState extends GameState {
     }
     public boolean makeChooseQuestionAction(MuseumCaperChooseQuestionAction a)
     {
+        if(playerTurn == 0)
+        {
+            return false;
+        }
+        int index = a.getQuestionIndex();
+        System.out.println("Guard chose question index" + index);
+        currentPhase = GamePhase.GUARD_ASK;
         return true;
     }
 
@@ -463,6 +502,11 @@ public class MuseumCaperState extends GameState {
     {
         return movementRoll;
     }
+    public ArrayList<Integer> getStolenPaintings()
+    {
+        return stolenPaintings;
+    }
+
     public int getQuestionRoll()
     {
         return questionRoll;
@@ -474,9 +518,15 @@ public class MuseumCaperState extends GameState {
     public int[] getGuardRoomId()
     { return guardRoomId.clone(); }
 
+    public boolean isThiefVisible()
+    {
+        return thiefVisible;
+    }
+
     public boolean isGameOver() {
         return gameOver;
     }
+
 
     public int getWinnerId() {
         return winnerId;
@@ -484,6 +534,42 @@ public class MuseumCaperState extends GameState {
     public int getPlayerTurn() {
         return playerTurn;
     }
+    public int getGuardRow(int guardIndex)
+    {
+        return guardRow[guardIndex];
+    }
+    public int getGuardCol(int guardIndex)
+    {
+        return guardCol[guardIndex];
+    }
+    // USED FOR THE UNIT TEST, omit before submission
+    public void setPlayerTurn(int i) {
+        playerTurn = i;
+    }
+    // USED FOR THE UNIT TEST, omit before submission
+    public void setGamePhase(GamePhase unfazed) {
+        currentPhase = unfazed;
+    }
+    // USED FOR THE UNIT TEST, omit before submission
+    public void setMovementRoll(int i) {
+        movementRoll = i;
+    }
+    // USED FOR THE UNIT TEST, omit before submission
+    public void setThiefPosition(int row, int col) {
+        thiefRow = row;
+        thiefCol = col;
+    }
+    public GamePhase getCurrentPhase() {
+        return currentPhase;
+    }
+
+    public void setNumPlayers(int i) {
+        numPlayers = i;
+    }
+    public void setPlayerNames(int index, String name) {
+        playerNames[index] = name;
+    }
+
 
 
 
@@ -495,7 +581,7 @@ public class MuseumCaperState extends GameState {
                 ",\n  thief=(" + thiefRow + "," + thiefCol + ")" +
                 ",\n  guards=" + Arrays.toString(guardRow) + " x " + Arrays.toString(guardCol) +
                 ",\n  movementRoll=" + movementRoll +
-                ",\n  questionRoll=" + questionRoll +
+                // ",\n  questionRoll=" + questionRoll +
                 ",\n  gameOver=" + gameOver +
                 ",\n  winnerId=" + winnerId +
                 "\n}";

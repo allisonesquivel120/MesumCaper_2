@@ -52,7 +52,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	 * 		the top object in the GUI's view heirarchy
 	 */
 	public View getTopView() {
-		return myActivity.findViewById(R.id.top_gui_layout);
+		return myActivity.findViewById(R.id.main);
 	}
 
 	/**
@@ -76,18 +76,19 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 
 //		// Construct the action and send it to the game
 		GameAction action = null;
-		if (button.getId() == R.id.plusButton) {
-			// plus button: create "increment" action
-			action = new MuseumCaperGuardMoveAction(this, true);
-		}
-		else if (button.getId() == R.id.minusButton) {
-			// minus button: create "decrement" action
-			action = new MuseumCaperGuardMoveAction(this, false);
-		}
-		else {
-//			// something else was pressed: ignore
-			return;
-		}
+//	    NO LONGER RELEVANT?
+//		if (button.getId() == R.id.plusButton) {
+//			// plus button: create "increment" action
+//			action = new MuseumCaperGuardMoveAction(this, true);
+//		}
+//		else if (button.getId() == R.id.minusButton) {
+//			// minus button: create "decrement" action
+//			action = new MuseumCaperGuardMoveAction(this, false);
+//		}
+//		else {
+////			// something else was pressed: ignore
+//			return;
+//		}
 
 		game.sendAction(action); // send action to the game
 	}// onClick
@@ -125,14 +126,16 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         // testing commit changes
 
 		// make this object the listener for both the '+' and '-' 'buttons
-		Button plusButton = (Button) activity.findViewById(R.id.plusButton);
-		plusButton.setOnClickListener(this);
-		Button minusButton = (Button) activity.findViewById(R.id.minusButton);
-		minusButton.setOnClickListener(this);
+//	    IRRELEVANT
+//		Button plusButton = (Button) activity.findViewById(R.id.plusButton);
+//		plusButton.setOnClickListener(this);
+//		Button minusButton = (Button) activity.findViewById(R.id.minusButton);
+//		minusButton.setOnClickListener(this);
 
 		// remember the field that we update to display the counter's value
-		this.counterValueTextView =
-				(TextView) activity.findViewById(R.id.counterValueTextView);
+//	    IRRELEVANT
+//		this.counterValueTextView =
+//				(TextView) activity.findViewById(R.id.counterValueTextView);
 
 		// if we have a game state, "simulate" that we have just received
 		// the state from the game so that the GUI values are updated

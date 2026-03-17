@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:background="@drawable/film_blurred"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    tools:context="edu.up.cs301.GameFramework.GameMainActivity">
 
     <!-- First layout : Horizontal-->
 

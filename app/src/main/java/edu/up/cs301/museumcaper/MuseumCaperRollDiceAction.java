@@ -16,12 +16,14 @@ public class MuseumCaperRollDiceAction extends GameAction {
      * constructor for GameAction
      *
      * @param player the player who created the action
+     * @param type the type of dice rolled
      */
     private final DiceType type;
     public MuseumCaperRollDiceAction(GamePlayer player, DiceType type)
     {
         super(player);
         this.type = type;
+
     }
     public DiceType getType()
     {

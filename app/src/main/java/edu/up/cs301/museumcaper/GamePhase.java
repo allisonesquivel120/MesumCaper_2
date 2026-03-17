@@ -13,9 +13,12 @@ package edu.up.cs301.museumcaper;
  */
 public enum GamePhase {
     SETUP, // board initialization
+    START_TURN,
     PLAY, // main gameplay loop
     THIEF_TURN, // AI thief is taking its turn
     GUARD_ROLL, // detective is rolling for movement
+    GUARD_ASK,
+    GUARD_QUESTION,
     GUARD_MOVE, // detective is choosing destination
     ENDGAME // game has ended
 }

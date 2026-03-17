@@ -33,6 +33,7 @@ public class MuseumCaperLocalGame extends LocalGame {
     protected boolean canMove(int playerIdx)
     {
         // thief cant move manually
+        // careful when implementing AI!
         if(playerIdx == 0)
         {
             return false;
