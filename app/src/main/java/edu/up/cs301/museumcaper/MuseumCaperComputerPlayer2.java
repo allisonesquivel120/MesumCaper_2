@@ -48,7 +48,7 @@ public class MuseumCaperComputerPlayer2 extends MuseumCaperComputerPlayer1 {
      * @param i
      */
 	public MuseumCaperComputerPlayer2(String name, int i) {
-		super(name);
+		super(name, i);
 	}
 
     /**

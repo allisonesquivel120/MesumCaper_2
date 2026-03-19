@@ -5,6 +5,7 @@ import edu.up.cs301.GameFramework.GameMainActivity;
 import edu.up.cs301.GameFramework.actionMessage.GameAction;
 import edu.up.cs301.GameFramework.infoMessage.GameInfo;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.view.View.OnClickListener;
@@ -36,6 +37,8 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	// the android activity that we are running
 	private GameMainActivity myActivity;
 
+
+
 	/**
      * constructor
      *
@@ -61,7 +64,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	 */
 	protected void updateDisplay() {
 		// set the text in the appropriate widget -- adjust player turn
-		playerTurnTextView.setText("" + state.getPlayerTurn());
+        playerTurnTextView.setText("" + state.getPlayerTurn());
 	}
 
 	/**
@@ -120,17 +123,10 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 
 		// make this object the listener for both the '+' and '-' 'buttons
 //	    IRRELEVANT
-        ImageView cameraDieButton = activity.findViewById(R.id.cameradie);
+        ImageView cameraDieButton = myActivity.findViewById(R.id.cameradie);
         cameraDieButton.setOnClickListener(this);
-//		Button plusButton = (Button) activity.findViewById(R.id.plusButton);
-//		plusButton.setOnClickListener(this);
-//		Button minusButton = (Button) activity.findViewById(R.id.minusButton);
-//		minusButton.setOnClickListener(this);
 
-		// remember the field that we update to display the counter's value
-//	    IRRELEVANT
-//		this.counterValueTextView =
-//				(TextView) activity.findViewById(R.id.counterValueTextView);
+        playerTurnTextView.findViewById(R.id.userTurnInfo);
 
 		// if we have a game state, "simulate" that we have just received
 		// the state from the game so that the GUI values are updated
