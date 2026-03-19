@@ -73,6 +73,8 @@ public class MuseumCaperStateTest {
     public void testCopyConstructor() {
         // create original game state
         MuseumCaperState firstInstance = new MuseumCaperState();
+        MuseumCaperState firstCopy = new MuseumCaperState(firstInstance, 1);
+
         firstInstance.setNumPlayers(2);
         firstInstance.setPlayerNames(0, "Allison");
         firstInstance.setPlayerNames(1, "GuardBob");
@@ -129,5 +131,12 @@ public class MuseumCaperStateTest {
         // verify guard copy still sees original stolen painting
         assertTrue(guardCopy.getStolenPaintings().contains(42));
         assertFalse(guardCopy.getStolenPaintings().contains(99));
+
+        // create second instance
+        MuseumCaperState secondInstance = new MuseumCaperState();
+        MuseumCaperState secondCopy = new MuseumCaperState(secondInstance, 1);
+
+        // final check!
+        assertEquals(firstCopy.toString(), secondCopy.toString());
     }
 }
