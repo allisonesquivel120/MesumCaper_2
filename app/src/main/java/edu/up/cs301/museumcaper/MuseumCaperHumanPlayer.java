@@ -5,7 +5,6 @@ import edu.up.cs301.GameFramework.GameMainActivity;
 import edu.up.cs301.GameFramework.actionMessage.GameAction;
 import edu.up.cs301.GameFramework.infoMessage.GameInfo;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.view.View.OnClickListener;
@@ -38,11 +37,12 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	private GameMainActivity myActivity;
 
 	/**
-	 * constructor
-	 * @param name
-	 * 		the player's name
-	 */
-	public MuseumCaperHumanPlayer(String name) {
+     * constructor
+     *
+     * @param name the player's name
+     * @param i
+     */
+	public MuseumCaperHumanPlayer(String name, int i) {
         super(name);
     }
 
@@ -120,7 +120,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 
 		// make this object the listener for both the '+' and '-' 'buttons
 //	    IRRELEVANT
-        ImageView cameraDieButton = myActivity.findViewById(R.id.cameradie);
+        ImageView cameraDieButton = activity.findViewById(R.id.cameradie);
         cameraDieButton.setOnClickListener(this);
 //		Button plusButton = (Button) activity.findViewById(R.id.plusButton);
 //		plusButton.setOnClickListener(this);
