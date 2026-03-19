@@ -28,7 +28,11 @@ public class MuseumCaperComputerPlayer1 extends GameComputerPlayer implements Ti
         super(name);
         this.guardIndex = guardIndex;
     }
-    
+
+    public MuseumCaperComputerPlayer1(String name) {
+        super(name);
+    }
+
     /**
      * callback method--game's state has changed
      * 
