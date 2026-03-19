@@ -19,6 +19,7 @@ public class MuseumCaperMarkStolenPaintingsAction extends GameAction
      * constructor for GameAction
      *
      * @param player the player who created the action
+     * @param paintingId
      */
     public MuseumCaperMarkStolenPaintingsAction(GamePlayer player, int paintingId) {
         super(player);

@@ -6,6 +6,7 @@ import edu.up.cs301.GameFramework.actionMessage.GameAction;
 import edu.up.cs301.GameFramework.infoMessage.GameInfo;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.view.View.OnClickListener;
 
@@ -28,7 +29,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	/* instance variables */
 
 	// The TextView the displays the current counter value
-	private TextView counterValueTextView;
+	private TextView playerTurnTextView;
 
 	// the most recent game state, as given to us by the CounterLocalGame
 	private MuseumCaperState state;
@@ -52,15 +53,15 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	 * 		the top object in the GUI's view heirarchy
 	 */
 	public View getTopView() {
-		return myActivity.findViewById(R.id.main);
+		return myActivity.findViewById(R.id.main_MuseumCaper);
 	}
 
 	/**
 	 * sets the counter value in the text view
 	 */
 	protected void updateDisplay() {
-		// set the text in the appropriate widget
-		counterValueTextView.setText("" + state.getPlayerTurn());
+		// set the text in the appropriate widget -- adjust player turn
+		playerTurnTextView.setText("" + state.getPlayerTurn());
 	}
 
 	/**
@@ -74,23 +75,15 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 		// if we are not yet connected to a game, ignore
 		if (game == null) return;
 
-//		// Construct the action and send it to the game
-		GameAction action = null;
-//	    NO LONGER RELEVANT?
-//		if (button.getId() == R.id.plusButton) {
-//			// plus button: create "increment" action
-//			action = new MuseumCaperGuardMoveAction(this, true);
-//		}
-//		else if (button.getId() == R.id.minusButton) {
-//			// minus button: create "decrement" action
-//			action = new MuseumCaperGuardMoveAction(this, false);
-//		}
-//		else {
-////			// something else was pressed: ignore
-//			return;
-//		}
+        GameAction cameraAction;
 
-		game.sendAction(action); // send action to the game
+
+//	    NO LONGER RELEVANT?
+		if (button.getId() == R.id.cameradie) {
+			// camer die button :
+			MuseumCaperRollDiceAction action = new MuseumCaperRollDiceAction(this, DiceType.QUESTION);
+            game.sendAction(action);
+		}
 	}// onClick
 
 	/**
@@ -127,6 +120,8 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 
 		// make this object the listener for both the '+' and '-' 'buttons
 //	    IRRELEVANT
+        ImageView cameraDieButton = myActivity.findViewById(R.id.cameradie);
+        cameraDieButton.setOnClickListener(this);
 //		Button plusButton = (Button) activity.findViewById(R.id.plusButton);
 //		plusButton.setOnClickListener(this);
 //		Button minusButton = (Button) activity.findViewById(R.id.minusButton);

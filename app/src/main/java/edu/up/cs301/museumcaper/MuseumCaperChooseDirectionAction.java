@@ -19,6 +19,7 @@ public class MuseumCaperChooseDirectionAction extends GameAction
      * constructor for GameAction
      *
      * @param player the player who created the action
+     * @param direction
      */
     public MuseumCaperChooseDirectionAction(GamePlayer player, int direction) {
         super(player);

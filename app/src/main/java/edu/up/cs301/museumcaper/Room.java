@@ -1,7 +1,16 @@
 package edu.up.cs301.museumcaper;
 
 import java.io.Serializable;
-
+/**
+ * Represents a single room in Museum Caper
+ * Each room tracks what is inside
+ *
+ * @author Farid S.
+ * @author Jayden H.
+ * @author Allison E.
+ *
+ * @version Feb. 2026
+ */
 public class Room implements Serializable
 {
     private static final long serialVersionUID = 7737393762469851826L;
@@ -12,7 +21,11 @@ public class Room implements Serializable
     private boolean alarmTriggered;
     private boolean powerOn;
 
-
+    /**
+     * creates a new room with given ID
+     * rooms starts with no painting, no camera, and power on
+     * @param id
+     */
     public Room(int id)
     {
         this.id = id;
@@ -20,6 +33,9 @@ public class Room implements Serializable
         this.hasCamera = false;
         this.powerOn = true;
     }
+    /**
+     * copy constructor
+     */
     public Room (Room orig)
     {
         this.id = orig.id;
@@ -29,7 +45,7 @@ public class Room implements Serializable
         this.powerOn = orig.powerOn;
     }
 
-    // getters
+    // getter methods
     public int getId()
     {
         return id;
@@ -57,8 +73,14 @@ public class Room implements Serializable
     {
         this.hasCamera = hasCamera;
     }
-    public void setAlarmTriggered(boolean alarmTriggered) { this.alarmTriggered = alarmTriggered;}
-    public void setPowerOn(boolean powerOn) { this.powerOn = powerOn; }
+    public void setAlarmTriggered(boolean alarmTriggered)
+    {
+        this.alarmTriggered = alarmTriggered;
+    }
+    public void setPowerOn(boolean powerOn)
+    {
+        this.powerOn = powerOn;
+    }
 
 }
 

@@ -19,6 +19,7 @@ public class MuseumCaperChooseQuestionAction extends GameAction
      * constructor for GameAction
      *
      * @param player the player who created the action
+     * @param questionIndex
      */
     public MuseumCaperChooseQuestionAction(GamePlayer player, int questionIndex) {
         super(player);

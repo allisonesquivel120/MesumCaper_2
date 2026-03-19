@@ -1,5 +1,13 @@
 package edu.up.cs301.museumcaper;
-
+/**
+ * Tells us what room guard/thief in depending on character is outputs
+ *
+ * @author Farid S.
+ * @author Jayden H.
+ * @author Allison E.
+ *
+ * @version Feb. 2026
+ */
 public enum RoomType {
     TEAL('t'),
     RED('r'),

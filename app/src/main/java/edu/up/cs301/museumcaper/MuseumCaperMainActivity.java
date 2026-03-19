@@ -1,21 +1,21 @@
-//package edu.up.cs301.museumcaper;
-//
-//import java.util.ArrayList;
-//
-//import edu.up.cs301.GameFramework.GameMainActivity;
-//import edu.up.cs301.GameFramework.infoMessage.GameState;
-//import edu.up.cs301.GameFramework.players.GamePlayer;
-//import edu.up.cs301.GameFramework.LocalGame;
-//import edu.up.cs301.GameFramework.gameConfiguration.*;
-//
-///**
-// * this is the primary activity for Counter game
-// *
-// * @author Farid S.
-// * @author Jayden H.
-// * @author Allison E.
-// * @version March 2026
-// */
+package edu.up.cs301.museumcaper;
+
+import java.util.ArrayList;
+
+import edu.up.cs301.GameFramework.GameMainActivity;
+import edu.up.cs301.GameFramework.infoMessage.GameState;
+import edu.up.cs301.GameFramework.players.GamePlayer;
+import edu.up.cs301.GameFramework.LocalGame;
+import edu.up.cs301.GameFramework.gameConfiguration.*;
+
+/**
+ * this is the primary activity for Counter game
+ *
+ * @author Farid S.
+ * @author Jayden H.
+ * @author Allison E.
+ * @version March 2026
+ */
 //public class MuseumCaperMainActivity extends GameMainActivity {
 //
 //	// the port number that this game will use when playing over the network

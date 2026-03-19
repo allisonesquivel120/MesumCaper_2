@@ -19,8 +19,10 @@ public class MuseumCaperGuardMoveAction extends GameAction
     /**
      * constructor for GameAction
      *
-     * @param player     the player who created the action
+     * @param player the player who created the action
      * @param guardIndex
+     * @param targetRow
+     * @param targetCol
      */
     public MuseumCaperGuardMoveAction(GamePlayer player, int targetRow, int targetCol, int guardIndex) {
         super(player);
