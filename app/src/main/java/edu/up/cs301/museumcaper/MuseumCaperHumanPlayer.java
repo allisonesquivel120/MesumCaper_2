@@ -126,7 +126,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         ImageView cameraDieButton = myActivity.findViewById(R.id.cameradie);
         cameraDieButton.setOnClickListener(this);
 
-        playerTurnTextView.findViewById(R.id.userTurnInfo);
+        playerTurnTextView = myActivity.findViewById(R.id.turnInfo);
 
 		// if we have a game state, "simulate" that we have just received
 		// the state from the game so that the GUI values are updated

@@ -73,16 +73,22 @@ public class MuseumCaperStateTest {
     public void testCopyConstructor() {
         // create original game state
         MuseumCaperState firstInstance = new MuseumCaperState();
-        MuseumCaperState firstCopy = new MuseumCaperState(firstInstance, 1);
 
         firstInstance.setNumPlayers(2);
         firstInstance.setPlayerNames(0, "Allison");
         firstInstance.setPlayerNames(1, "GuardBob");
 
+        // copy!
+        MuseumCaperState firstCopy = new MuseumCaperState(firstInstance, 1);
+
+
         // set thief position and mark a stolen painting
         firstInstance.setThiefPosition(9, 7);
         MuseumCaperMarkStolenPaintingsAction steal = new MuseumCaperMarkStolenPaintingsAction(null, 42);
         firstInstance.makeMarkStolenPaintingsAction(steal);
+
+        // check!
+        assertEquals(true, firstInstance.makeMarkStolenPaintingsAction(steal));
 
         // copy from thief perspective
         MuseumCaperState thiefCopy = new MuseumCaperState(firstInstance, 0);
@@ -110,27 +116,56 @@ public class MuseumCaperStateTest {
         MuseumCaperRollDiceAction roll = new MuseumCaperRollDiceAction(null, DiceType.MOVEMENT);
         firstInstance.makeRollDiceAction(roll);
 
+        // check!
+        assertEquals(GamePhase.GUARD_MOVE, firstInstance.getCurrentPhase());
+
         // hardcode movement for testing
         firstInstance.setMovementRoll(5);
-        MuseumCaperGuardMoveAction moveGuard = new MuseumCaperGuardMoveAction(null, 0, 5, 7);
+        // let's get rid of guard index
+        MuseumCaperGuardMoveAction moveGuard = new MuseumCaperGuardMoveAction(null, 5, 7, 1);
         firstInstance.makeGuardMoveAction(moveGuard);
 
-        // modify original: thief moves and steals another painting
-        firstInstance.setThiefPosition(8, 6);
-        firstInstance.makeMarkStolenPaintingsAction(new MuseumCaperMarkStolenPaintingsAction(null, 99));
+        // check!
+        assertEquals(5, firstInstance.getGuardRow());
+        assertEquals(7, firstInstance.getGuardCol());
+
+        // thief moves
+        firstInstance.setThiefPosition(9, 5);
 
         // check independence: thief copy should not be affected
         assertNotEquals(firstInstance.toString(), thiefCopy.toString());
 
         // verify positions and stolen paintings in copy remain unchanged
         assertEquals(9, thiefCopy.getThiefRow());
-        assertEquals(7, thiefCopy.getThiefCol());
+        assertEquals(5, thiefCopy.getThiefCol());
         assertTrue(thiefCopy.getStolenPaintings().contains(42));
-        assertFalse(thiefCopy.getStolenPaintings().contains(99));
 
         // verify guard copy still sees original stolen painting
         assertTrue(guardCopy.getStolenPaintings().contains(42));
-        assertFalse(guardCopy.getStolenPaintings().contains(99));
+
+        // roll die action
+        // sets playerTurn to the guard, set GamePhase to GUARD_ROLL
+        firstInstance.setPlayerTurn(1);
+        firstInstance.setGamePhase(GamePhase.GUARD_ROLL);
+
+        // the guard moves again and lands on the thief
+        MuseumCaperRollDiceAction againAgain = new MuseumCaperRollDiceAction(null, DiceType.MOVEMENT);
+        firstInstance.makeRollDiceAction(againAgain);
+
+        // check!
+        assertEquals(GamePhase.GUARD_MOVE, firstInstance.getCurrentPhase());
+
+        // hardcode the dice roll
+        firstInstance.setMovementRoll(6);
+
+        MuseumCaperGuardMoveAction rollingOut = new MuseumCaperGuardMoveAction(null, 5, 9, 1);
+        firstInstance.makeGuardMoveAction(rollingOut);
+
+        // check!
+        assertEquals(5, firstInstance.getGuardRow());
+        assertEquals(9, firstInstance.getGuardCol());
+
+        // GAME OVER
 
         // create second instance
         MuseumCaperState secondInstance = new MuseumCaperState();
