@@ -79,7 +79,7 @@ public class MuseumCaperStateTest {
         firstInstance.setPlayerNames(1, "GuardBob");
 
         // copy!
-        MuseumCaperState firstCopy = new MuseumCaperState(firstInstance, 1);
+        MuseumCaperState firstCopy = new MuseumCaperState(firstInstance);
 
 
         // set thief position and mark a stolen painting
@@ -92,10 +92,10 @@ public class MuseumCaperStateTest {
         assertTrue(firstInstance.getStolenPaintings().contains(42));
 
         // copy from thief perspective
-        MuseumCaperState thiefCopy = new MuseumCaperState(firstInstance, 0);
+        MuseumCaperState thiefCopy = new MuseumCaperState(firstInstance);
 
         // copy from guard perspective
-        MuseumCaperState guardCopy = new MuseumCaperState(firstInstance, 1);
+        MuseumCaperState guardCopy = new MuseumCaperState(firstInstance);
 
         // check that thief sees their own position
         assertEquals(9, thiefCopy.getThiefRow());
@@ -170,7 +170,7 @@ public class MuseumCaperStateTest {
 
         // create second instance
         MuseumCaperState secondInstance = new MuseumCaperState();
-        MuseumCaperState secondCopy = new MuseumCaperState(secondInstance, 1);
+        MuseumCaperState secondCopy = new MuseumCaperState(secondInstance);
 
         // final check!
         assertEquals(firstCopy.toString(), secondCopy.toString());

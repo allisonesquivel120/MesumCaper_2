@@ -143,9 +143,8 @@ public class MuseumCaperState extends GameState {
      * copy constructor; makes a copy of the original object
      *
      * @param orig from which the copy should be made
-     * @param playerId tells the copy constructor who is looking at the game state
      */
-    public MuseumCaperState(MuseumCaperState orig, int playerId) {
+    public MuseumCaperState(MuseumCaperState orig) {
         this.playerTurn = orig.playerTurn;
         this.numPlayers = orig.numPlayers;
         this.currentPhase = orig.currentPhase;
@@ -159,13 +158,6 @@ public class MuseumCaperState extends GameState {
 
         // thief visibility
         this.thiefVisible = orig.thiefVisible;
-        if (playerId == 0) {
-            this.thiefRow = orig.thiefRow;
-            this.thiefCol = orig.thiefCol;
-            // thief sees all the stolen paintings
-            this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
-
-        } else {
             if(orig.thiefVisible)
             {
                 // guards only see the thief if visible
@@ -178,8 +170,7 @@ public class MuseumCaperState extends GameState {
                 this.thiefCol = -1;
             }
             // guard also sees stolen paintings
-            this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
-        }
+        this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
 
         // guard position [deep copy]
         this.guardRow = orig.guardRow.clone();
@@ -358,6 +349,10 @@ public class MuseumCaperState extends GameState {
             default:
                 return false;
         }
+    }
+
+    public int getDiceValue () {
+        return this.movementRoll;
     }
     /**
      * handles guard movement action

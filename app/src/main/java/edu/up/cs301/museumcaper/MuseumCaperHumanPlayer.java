@@ -10,6 +10,7 @@ import edu.up.cs301.GameFramework.players.GamePlayer;
 
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.view.View.OnClickListener;
@@ -41,6 +42,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	// the android activity that we are running
 	private GameMainActivity myActivity;
 
+    private ImageButton movementDieButton = null;
 
 
 	/**
@@ -117,6 +119,10 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 			MuseumCaperRollDiceAction action = new MuseumCaperRollDiceAction(this, DiceType.QUESTION);
             game.sendAction(action);
 		}
+        if (button.getId() == R.id.regulardie) {
+            MuseumCaperRollDiceAction roll = new MuseumCaperRollDiceAction(this);
+            game.sendAction(roll);
+        }
 	}// onClick
 
 	/**
@@ -128,10 +134,27 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	@Override
 	public void receiveInfo(GameInfo info) {
 		// ignore the message if it's not a CounterState message
-		if (!(info instanceof MuseumCaperState)) return;
+		if (!(info instanceof MuseumCaperState)) { return; };
 
 		// update our state; then update the display
-		this.state = (MuseumCaperState)info;
+		//this.state = (MuseumCaperState)info;
+        //check error for following line! What does it mean counter state?
+        state = new MuseumCaperState((MuseumCaperState) info);
+
+        if (state.getDiceValue() == 1) {
+            movementDieButton.setImageResource(R.drawable.die1);
+        } else if (state.getDiceValue() == 2) {
+            movementDieButton.setImageResource(R.drawable.die2);
+        } else if (state.getDiceValue() == 3) {
+            movementDieButton.setImageResource(R.drawable.die3);
+        } else if (state.getDiceValue() == 4) {
+            movementDieButton.setImageResource(R.drawable.die4);
+        } else if (state.getDiceValue() == 5) {
+            movementDieButton.setImageResource(R.drawable.die5);
+        } else if (state.getDiceValue() == 6) {
+            movementDieButton.setImageResource(R.drawable.die6);
+        }
+
 		updateDisplay();
 	}
 
@@ -151,8 +174,6 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 		activity.setContentView(R.layout.museumcaper_human_player);
         // testing commit changes
 
-		// make this object the listener for both the '+' and '-' 'buttons
-//	    IRRELEVANT
         ImageView cameraDieButton = myActivity.findViewById(R.id.cameradie);
         cameraDieButton.setOnClickListener(this);
 
