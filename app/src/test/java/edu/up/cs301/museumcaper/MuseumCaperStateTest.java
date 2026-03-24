@@ -88,7 +88,8 @@ public class MuseumCaperStateTest {
         firstInstance.makeMarkStolenPaintingsAction(steal);
 
         // check!
-        assertEquals(true, firstInstance.makeMarkStolenPaintingsAction(steal));
+        //assertEquals(true, firstInstance.makeMarkStolenPaintingsAction(steal));
+        assertTrue(firstInstance.getStolenPaintings().contains(42));
 
         // copy from thief perspective
         MuseumCaperState thiefCopy = new MuseumCaperState(firstInstance, 0);
@@ -122,12 +123,12 @@ public class MuseumCaperStateTest {
         // hardcode movement for testing
         firstInstance.setMovementRoll(5);
         // let's get rid of guard index
-        MuseumCaperGuardMoveAction moveGuard = new MuseumCaperGuardMoveAction(null, 5, 7, 1);
+        MuseumCaperGuardMoveAction moveGuard = new MuseumCaperGuardMoveAction(null, 0, 5, 7);
         firstInstance.makeGuardMoveAction(moveGuard);
 
         // check!
-        assertEquals(5, firstInstance.getGuardRow());
-        assertEquals(7, firstInstance.getGuardCol());
+        assertEquals(5, firstInstance.getGuardRow(0));
+        assertEquals(7, firstInstance.getGuardCol(0));
 
         // thief moves
         firstInstance.setThiefPosition(9, 5);
@@ -162,8 +163,8 @@ public class MuseumCaperStateTest {
         firstInstance.makeGuardMoveAction(rollingOut);
 
         // check!
-        assertEquals(5, firstInstance.getGuardRow());
-        assertEquals(9, firstInstance.getGuardCol());
+        assertEquals(5, firstInstance.getGuardRow(0));
+        assertEquals(9, firstInstance.getGuardCol(0));
 
         // GAME OVER
 

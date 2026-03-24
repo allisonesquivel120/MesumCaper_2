@@ -377,12 +377,14 @@ public class MuseumCaperState extends GameState {
         }
         // identifies which guard is moving
         int guardIndex = a.getGuardIndex();
+        int tr = a.getTargetRow();
+        int tc = a.getTargetCol();
+
         if(guardIndex < 0 || guardIndex >= guardRow.length)
         {
             return false; // = invalid guardIndex
         }
-        int tr = a.getTargetRow();
-        int tc = a.getTargetCol();
+
 
         if(!inBounds(tr,tc))
         {

@@ -1,9 +1,13 @@
 package edu.up.cs301.museumcaper;
 
+import edu.up.cs301.GameFramework.LocalGame;
 import edu.up.cs301.GameFramework.players.GameHumanPlayer;
 import edu.up.cs301.GameFramework.GameMainActivity;
 import edu.up.cs301.GameFramework.actionMessage.GameAction;
 import edu.up.cs301.GameFramework.infoMessage.GameInfo;
+import edu.up.cs301.GameFramework.Game;
+import edu.up.cs301.GameFramework.players.GamePlayer;
+
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -63,8 +67,28 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	 * sets the counter value in the text view
 	 */
 	protected void updateDisplay() {
+        //
+        if(state == null || playerTurnTextView == null || myActivity == null)
+        {
+            return;
+        }
+        // get player name from framework
+        LocalGame local = myActivity.getGame();
+        GamePlayer[] players = local.getPlayers();
+
+        //determine who's turn it is
+        int turn = state.getPlayerTurn();
+
+        // safety check
+        if(turn < 0 || turn >= players.length)
+        {
+            playerTurnTextView.setText("Unknown Player's Turn.");
+            return;
+        }
+        String name = players[turn].getName();
+
 		// set the text in the appropriate widget -- adjust player turn
-        playerTurnTextView.setText("" + state.getPlayerTurn());
+        playerTurnTextView.setText(name + "'s Turn");
 	}
 
 	/**
@@ -77,7 +101,13 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	public void onClick(View button) {
 		// if we are not yet connected to a game, ignore
 		if (game == null) return;
-
+//        int row = clickedRow;
+//        int col = clickedCol;
+//        int guardIndex = getPlayerNum() - 1;
+//        if(guardIndex >= 0)
+//        {
+//            game.sendAction(new MuseumCaperGuardMoveAction(this, guardIndex, row,col));
+//        }
         GameAction cameraAction;
 
 

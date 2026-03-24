@@ -24,7 +24,7 @@ public class MuseumCaperGuardMoveAction extends GameAction
      * @param targetRow
      * @param targetCol
      */
-    public MuseumCaperGuardMoveAction(GamePlayer player, int targetRow, int targetCol, int guardIndex) {
+    public MuseumCaperGuardMoveAction(GamePlayer player, int guardIndex, int targetRow, int targetCol) {
         super(player);
         this.targetRow = targetRow;
         this.targetCol = targetCol;
