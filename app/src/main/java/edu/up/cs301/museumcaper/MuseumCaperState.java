@@ -349,12 +349,11 @@ public class MuseumCaperState extends GameState {
                 return true;
             case QUESTION:
                 // guard rolls question die before asking a question
-                if(currentPhase != GamePhase.GUARD_QUESTION)
-                {
-                    questionRoll = rng.nextInt(6)+1;
-                    currentPhase = GamePhase.GUARD_ASK;
-                    return true;
-                }
+                if(currentPhase != GamePhase.GUARD_QUESTION) return false;
+                questionRoll = rng.nextInt(6)+1;
+                currentPhase = GamePhase.GUARD_ASK;
+                return true;
+
             default:
                 return false;
         }
