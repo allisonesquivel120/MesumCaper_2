@@ -68,14 +68,13 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	/**
 	 * sets the counter value in the text view
 	 */
-	protected void updateDisplay() {
+    protected void updateDisplay() {
         //
         if(state == null || playerTurnTextView == null || myActivity == null)
         {
             return;
         }
-        // get player name from framework
-        LocalGame local = myActivity.getGame();
+        LocalGame local = (LocalGame) game;
         GamePlayer[] players = local.getPlayers();
 
         //determine who's turn it is
@@ -87,13 +86,13 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
             playerTurnTextView.setText("Unknown Player's Turn.");
             return;
         }
-        String name = players[turn].getName();
+        String name = players[turn].toString();
 
-		// set the text in the appropriate widget -- adjust player turn
+        // set the text in the appropriate widget -- adjust player turn
         playerTurnTextView.setText(name + "'s Turn");
-	}
+    }
 
-	/**
+    /**
 	 * this method gets called when the user clicks the '+' or '-' button. It
 	 * creates a new CounterMoveAction to return to the parent activity.
 	 *
@@ -188,7 +187,13 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 
     @Override
     public int getPlayerNum() {
-        return 0;
+        return this.playerNum;
+    }
+
+    // overrriding the toString
+    @Override
+    public String toString() {
+        return this.name;
     }
 
 }// class CounterHumanPlayer

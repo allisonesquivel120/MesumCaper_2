@@ -377,7 +377,7 @@
                         />
                     <!--                contains the right dice [movement dice]-->
 
-                    <ImageView
+                    <ImageButton
                         android:id="@+id/regulardie"
                         android:layout_width="120dp"
                         android:layout_height="120dp"
