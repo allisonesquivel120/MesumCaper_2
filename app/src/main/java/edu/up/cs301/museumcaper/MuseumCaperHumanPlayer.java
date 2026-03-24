@@ -119,7 +119,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
             game.sendAction(action);
 		}
         if (button.getId() == R.id.regulardie) {
-            MuseumCaperRollDiceAction roll = new MuseumCaperRollDiceAction(this);
+            MuseumCaperRollDiceAction roll = new MuseumCaperRollDiceAction(this, DiceType.MOVEMENT);
             game.sendAction(roll);
         }
 	}// onClick
@@ -141,17 +141,17 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         state = new MuseumCaperState((MuseumCaperState) info);
 
         if (state.getDiceValue() == 1) {
-            movementDieButton.setImageResource(R.drawable.die1);
+            movementDieButton.setImageResource(R.drawable.basedie1);
         } else if (state.getDiceValue() == 2) {
-            movementDieButton.setImageResource(R.drawable.die2);
+            movementDieButton.setImageResource(R.drawable.basedie2);
         } else if (state.getDiceValue() == 3) {
-            movementDieButton.setImageResource(R.drawable.die3);
+            movementDieButton.setImageResource(R.drawable.basedie3);
         } else if (state.getDiceValue() == 4) {
-            movementDieButton.setImageResource(R.drawable.die4);
+            movementDieButton.setImageResource(R.drawable.basedie4);
         } else if (state.getDiceValue() == 5) {
-            movementDieButton.setImageResource(R.drawable.die5);
+            movementDieButton.setImageResource(R.drawable.basedie5);
         } else if (state.getDiceValue() == 6) {
-            movementDieButton.setImageResource(R.drawable.die6);
+            movementDieButton.setImageResource(R.drawable.basedie6);
         }
 
 		updateDisplay();
