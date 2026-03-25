@@ -38,7 +38,7 @@
                 android:contentDescription="@string/app_name"
                 android:scaleType="fitCenter"
                 android:layout_marginBottom="50dp"
-                android:src="@drawable/gameboard2"
+                android:src="@drawable/finalgameboard"
                 android:clickable="false"
                 android:focusable="false"/>
 
