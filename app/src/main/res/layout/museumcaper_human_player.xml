@@ -366,7 +366,7 @@
                     android:orientation="horizontal">
 
                     <!--                contains the left dice [camera dices]-->
-                    <ImageView
+                    <ImageButton
                         android:id="@+id/cameradie"
                         android:layout_width="120dp"
                         android:layout_height="120dp"
@@ -383,7 +383,7 @@
                         android:layout_height="120dp"
                         android:layout_weight="1"
                         android:scaleType="fitStart"
-                        android:src="@drawable/numberdie" />
+                        android:src="@drawable/basedie1" />
                 </LinearLayout>
             </LinearLayout>
 
