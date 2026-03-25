@@ -256,4 +256,5 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
     }
 
 }// class CounterHumanPlayer
+//
 
