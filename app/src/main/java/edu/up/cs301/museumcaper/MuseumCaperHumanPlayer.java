@@ -42,10 +42,9 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	// the android activity that we are running
 	private GameMainActivity myActivity;
 
-    private ImageView movementDieImageView;
-    private ImageView cameraDieImageView;
-
     private ImageButton movementDieButton = null;
+
+    private ImageButton cameraDieButton = null;
 
 
 	/**
@@ -71,6 +70,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	/**
 	 * sets the counter value in the text view
 	 */
+    // maybe omit
 	protected void updateDisplay() {
         //
         if(state == null || myActivity == null) return;
@@ -86,6 +86,10 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         }
         LocalGame local = (LocalGame) game;
         GamePlayer[] players = local.getPlayers();
+
+        //determine who's turn it is
+        int turn = state.getPlayerTurn();
+
         // safety check
         if(turn < 0 || turn >= players.length)
         {
@@ -97,34 +101,33 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         // set the text in the appropriate widget -- adjust player turn
         playerTurnTextView.setText(name + "'s Turn");
 
-        if (movementDieImageView != null) {
-            int roll = state.getMovementRoll();
-            movementDieImageView.setImageResource(getDieDrawable(roll, false));
-            // only clickable during GUARD_ROLL on the guard's turn
-            boolean canRollMovement = state.getCurrentPhase() == GamePhase.GUARD_ROLL
-                    && state.getPlayerTurn() == getPlayerNum();
-            movementDieImageView.setEnabled(canRollMovement);
-            movementDieImageView.setAlpha(canRollMovement ? 1.0f : 0.4f);
-        }
+//        if (movementDieButton != null) {
+//            int roll = state.getMovementRoll();
+//
+//            //movementDieButton.setImageResource(getDieDrawable(roll, false));
+//            // only clickable during GUARD_ROLL on the guard's turn
+////            boolean canRollMovement = state.getCurrentPhase() == GamePhase.GUARD_ROLL
+////                    && state.getPlayerTurn() == getPlayerNum();
+////            movementDieButton.setEnabled(canRollMovement);
+////            movementDieButton.setAlpha(canRollMovement ? 1.0f : 0.4f);
+//        }
 
-        if (cameraDieImageView != null) {
+        if (cameraDieButton != null) {
             int roll = state.getQuestionRoll();
-            cameraDieImageView.setImageResource(getDieDrawable(roll, true));
+            // camera die but not quite yet
+            //cameraDieButton.setImageResource(getDieDrawable(roll, true));
             boolean canRollQuestion = state.getCurrentPhase() == GamePhase.GUARD_QUESTION
                     && state.getPlayerTurn() == getPlayerNum();
-            cameraDieImageView.setEnabled(canRollQuestion);
-            cameraDieImageView.setAlpha(canRollQuestion ? 1.0f : 0.4f);
+            cameraDieButton.setEnabled(canRollQuestion);
+            cameraDieButton.setAlpha(canRollQuestion ? 1.0f : 0.4f);
         }
 
         GamePhase phase = state.getCurrentPhase();
 
-        Button movementDieButton = myActivity.findViewById(R.id.regulardie);
-        ImageView cameraDieButton = myActivity.findViewById(R.id.cameradie);
-
-        if (movementDieButton != null) {
-            movementDieButton.setEnabled(phase == GamePhase.GUARD_ROLL
-                    && state.getPlayerTurn() == getPlayerNum());
-        }
+//        if (movementDieButton != null) {
+//            movementDieButton.setEnabled(phase == GamePhase.GUARD_ROLL
+//                    && state.getPlayerTurn() == getPlayerNum());
+//        }
         if (cameraDieButton != null) {
             cameraDieButton.setEnabled(phase == GamePhase.GUARD_QUESTION
                     && state.getPlayerTurn() == getPlayerNum());
@@ -145,7 +148,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	 */
 	public void onClick(View button) {
 		// if we are not yet connected to a game, ignore
-		if (game == null) return;
+		// perchance if (game == null) return;
 //        int row = clickedRow;
 //        int col = clickedCol;
 //        int guardIndex = getPlayerNum() - 1;
@@ -153,7 +156,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 //        {
 //            game.sendAction(new MuseumCaperGuardMoveAction(this, guardIndex, row,col));
 //        }
-        GameAction cameraAction;
+        // perchance GameAction cameraAction;
 
 
         if (button.getId() == R.id.regulardie) {
@@ -176,11 +179,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	public void receiveInfo(GameInfo info) {
 		// ignore the message if it's not a CounterState message
 		if (!(info instanceof MuseumCaperState)) { return; };
-
-		// update our state; then update the display
-		//this.state = (MuseumCaperState)info;
-        //check error for following line! What does it mean counter state?
-        state = new MuseumCaperState((MuseumCaperState) info);
+        // set textviews
 
         if (state.getDiceValue() == 1) {
             movementDieButton.setImageResource(R.drawable.basedie1);
@@ -196,7 +195,15 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
             movementDieButton.setImageResource(R.drawable.basedie6);
         }
 
-		updateDisplay();
+		// update our state; then update the display
+		//this.state = (MuseumCaperState)info;
+        //check error for following line! What does it mean counter state?
+
+        // perchance
+        // state = new MuseumCaperState((MuseumCaperState) info);
+
+		// perchance
+        // updateDisplay();
 	}
 
 	/**
@@ -215,26 +222,26 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 		activity.setContentView(R.layout.museumcaper_human_player);
         // testing commit changes
 
-        ImageView cameraDieButton = myActivity.findViewById(R.id.cameradie);
-        cameraDieButton.setOnClickListener(this);
+        this.playerTurnTextView = (TextView)myActivity.findViewById(R.id.turnInfo);
+        this.movementDieButton = (ImageButton)myActivity.findViewById(R.id.regulardie);
+        this.cameraDieButton = (ImageButton)myActivity.findViewById(R.id.cameradie);
 
-        playerTurnTextView = myActivity.findViewById(R.id.turnInfo);
-        movementDieImageView = myActivity.findViewById(R.id.regulardie);
-        cameraDieImageView = myActivity.findViewById(R.id.cameradie);
 
         // make both dice clickable
-        movementDieImageView.setOnClickListener(this);
-        cameraDieImageView.setOnClickListener(this);
+        movementDieButton.setOnClickListener(this);
+        cameraDieButton.setOnClickListener(this);
 
         // also make the die ImageViews clickable in the XML sense
-        movementDieImageView.setClickable(true);
-        cameraDieImageView.setClickable(true);
+        //perchance uncomment, let's see it it does anythign!
+//        movementDieButton.setClickable(true);
+//        cameraDieButton.setClickable(true);
 
 		// if we have a game state, "simulate" that we have just received
 		// the state from the game so that the GUI values are updated
-		if (state != null) {
-			receiveInfo(state);
-		}
+        //perchance
+//		if (state != null) {
+//			receiveInfo(state);
+//		}
 	}//blah blah
 
     @Override
