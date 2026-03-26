@@ -9,6 +9,7 @@ import edu.up.cs301.GameFramework.Game;
 import edu.up.cs301.GameFramework.players.GamePlayer;
 
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -102,7 +103,6 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         }
 
     }
-
     private int getMovementDieDrawable(int roll) {
         switch (roll) {
             case 1: return R.drawable.basedie1;
@@ -193,6 +193,13 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         myActivity = activity;
         activity.setContentView(R.layout.museumcaper_human_player);
 
+        // --- find board & layers ---
+        ImageView boardImage = activity.findViewById(R.id.gameBoardImageView);
+        ViewGroup piecesLayer = activity.findViewById(R.id.piecesLayer);
+
+        // creates a drag listener for all pieces
+        BoardDragTouchListener dragListener = new BoardDragTouchListener(piecesLayer, boardImage, null);
+
         // wire up instance variables (NOT local variables)
         playerTurnTextView = myActivity.findViewById(R.id.turnInfo);
         movementDieButton = myActivity.findViewById(R.id.regulardie);  // matches layout ID
@@ -201,9 +208,41 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         movementDieButton.setOnClickListener(this);
         cameraDieButton.setOnClickListener(this);
 
+        // --- FIND ALL DRAGGABLE PIECES ---
+        ImageView camera1 = activity.findViewById(R.id.oncamera1);
+        ImageView camera2 = activity.findViewById(R.id.oncamera2);
+        ImageView camera3 = activity.findViewById(R.id.oncamera3);
+        ImageView camera4 = activity.findViewById(R.id.oncamera4);
+
+        ImageView p1 = activity.findViewById(R.id.painting1);
+        ImageView p2 = activity.findViewById(R.id.painting2);
+        ImageView p3 = activity.findViewById(R.id.painting3);
+        ImageView p4 = activity.findViewById(R.id.painting4);
+        ImageView p5 = activity.findViewById(R.id.painting5);
+        ImageView p6 = activity.findViewById(R.id.painting6);
+        ImageView p7 = activity.findViewById(R.id.painting7);
+        ImageView p8 = activity.findViewById(R.id.painting8);
+        ImageView p9 = activity.findViewById(R.id.painting9);
+
+        ImageView yellowPawn = activity.findViewById(R.id.yellow_Pawn);
+
+        View[] draggables = {
+                camera1, camera2, camera3, camera4,
+                p1, p2, p3, p4, p5, p6, p7, p8, p9,
+                yellowPawn
+        };
+
+        for (View v : draggables) {
+            if (v != null) {
+                v.setOnTouchListener(dragListener);
+            }
+        }
+
         if (state != null) {
             receiveInfo(state);
         }
+
+        piecesLayer.bringToFront();
     }//blah blah
 
     @Override
@@ -211,12 +250,11 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         return this.playerNum;
     }
 
-    // overrriding the toString
+    // overriding the toString
     @Override
     public String toString() {
         return this.name;
     }
+}// class MuseumCaperHumanPlayer
 
-}// class CounterHumanPlayer
-//
 
