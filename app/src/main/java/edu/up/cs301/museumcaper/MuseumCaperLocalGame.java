@@ -24,7 +24,7 @@ public class MuseumCaperLocalGame extends LocalGame {
 	public MuseumCaperLocalGame(GameState state) {
 		// initialize the game state, with the counter value starting at 0
 		if (! (state instanceof MuseumCaperState)) {
-			state = new MuseumCaperState();
+			state = new MuseumCaperState(2);
 		}
 		this.gameState = (MuseumCaperState)state;
 		super.state = state;
@@ -32,21 +32,21 @@ public class MuseumCaperLocalGame extends LocalGame {
     @Override
     protected boolean canMove(int playerIdx)
     {
+        /*
         // thief cant move manually
         // careful when implementing AI!
         if(playerIdx == 0)
         {
             return false;
         }
+         */
         // only the current players turn can move
         return playerIdx == gameState.getPlayerTurn();
     }
 
     @Override
     protected boolean makeMove(GameAction action) {
-
         // ----- GUARD ------
-
         // general actions
 
         if (action instanceof MuseumCaperSetNameAction) {
@@ -72,7 +72,6 @@ public class MuseumCaperLocalGame extends LocalGame {
         if(action instanceof MuseumCaperChooseQuestionAction)
         {
             return gameState.makeChooseQuestionAction((MuseumCaperChooseQuestionAction) action);
-
         }
         if (action instanceof MuseumCaperEndTurnAction)
         {

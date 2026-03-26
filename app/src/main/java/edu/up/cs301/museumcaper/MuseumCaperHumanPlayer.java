@@ -71,6 +71,13 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
     protected void updateDisplay() {
         if (state == null || myActivity == null) return;
 
+        android.util.Log.d("DICE_DEBUG", "=== updateDisplay called ===");
+        android.util.Log.d("DICE_DEBUG", "phase = " + state.getCurrentPhase());
+        android.util.Log.d("DICE_DEBUG", "playerTurn = " + state.getPlayerTurn());
+        android.util.Log.d("DICE_DEBUG", "myPlayerNum = " + getPlayerNum());
+        android.util.Log.d("DICE_DEBUG", "movementRoll = " + state.getMovementRoll());
+        android.util.Log.d("DICE_DEBUG", "canRoll = " + (state.getCurrentPhase() == GamePhase.GUARD_ROLL && state.getPlayerTurn() == getPlayerNum()));
+
         // --- whose turn is it ---
         if (playerTurnTextView != null) {
             int turn = state.getPlayerTurn();

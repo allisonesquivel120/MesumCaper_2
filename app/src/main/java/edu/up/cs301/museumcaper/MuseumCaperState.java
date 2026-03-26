@@ -365,14 +365,17 @@ public class MuseumCaperState extends GameState {
         {
             return false;
         }
-        if(a.getPlayer().getPlayerNum() != playerTurn)
-        {
-            return false;
+        int actingPlayer = a.getPlayer().getPlayerNum();
+
+        // thief (player 0) ending turn — run thief AI movement
+        if (actingPlayer == 0) {
+            runThiefAI();
+            return true;
         }
-        // goes to next player
-        playerTurn = (playerTurn + 1) % numPlayers;
-        // rest phase to START_TURN
-        currentPhase = GamePhase.START_TURN;
+        // detective ending turn — switch to thief
+        if (actingPlayer != playerTurn) return false;
+        playerTurn = 0; // thief's turn next
+        currentPhase = GamePhase.THIEF_TURN;
         return true;
     }
     /**
