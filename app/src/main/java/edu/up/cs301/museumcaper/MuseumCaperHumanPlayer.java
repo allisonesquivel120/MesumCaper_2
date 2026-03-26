@@ -42,9 +42,9 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	// the android activity that we are running
 	private GameMainActivity myActivity;
 
-    private ImageButton movementDieButton = null;
+    private ImageButton movementDieButton;
 
-    private ImageButton cameraDieButton = null;
+    private ImageButton cameraDieButton;
 
 
 	/**
@@ -63,18 +63,84 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	 * @return
 	 * 		the top object in the GUI's view heirarchy
 	 */
+    @Override
 	public View getTopView() {
 		return myActivity.findViewById(R.id.main_MuseumCaper);
 	}
 
+    protected void updateDisplay() {
+        if (state == null || myActivity == null) return;
+
+        // --- whose turn is it ---
+        if (playerTurnTextView != null) {
+            int turn = state.getPlayerTurn();
+            // turn 0 = thief (AI), turn 1+ = guard (human)
+            if (turn == 0) {
+                playerTurnTextView.setText("Thief's Turn");
+            } else {
+                playerTurnTextView.setText(this.name + "'s Turn");
+            }
+        }
+// --- movement die image ---
+        if (movementDieButton != null) {
+            int roll = state.getMovementRoll();
+            movementDieButton.setImageResource(getMovementDieDrawable(roll));
+            boolean canRoll = state.getCurrentPhase() == GamePhase.GUARD_ROLL
+                    && state.getPlayerTurn() == getPlayerNum();
+            movementDieButton.setEnabled(canRoll);
+            movementDieButton.setAlpha(canRoll ? 1.0f : 0.4f);
+        }
+
+        // --- camera die image ---
+        if (cameraDieButton != null) {
+            int roll = state.getQuestionRoll();
+            cameraDieButton.setImageResource(getCameraDieDrawable(roll));
+            boolean canRoll = state.getCurrentPhase() == GamePhase.GUARD_QUESTION
+                    && state.getPlayerTurn() == getPlayerNum();
+            cameraDieButton.setEnabled(canRoll);
+            cameraDieButton.setAlpha(canRoll ? 1.0f : 0.4f);
+        }
+
+    }
+
+    private int getMovementDieDrawable(int roll) {
+        switch (roll) {
+            case 1: return R.drawable.basedie1;
+            case 2: return R.drawable.basedie2;
+            case 3: return R.drawable.basedie3;
+            case 4: return R.drawable.basedie4;
+            case 5: return R.drawable.basedie5;
+            case 6: return R.drawable.basedie6;
+            default: return R.drawable.basedie1; // unrolled state
+        }
+    }
+
+    private int getCameraDieDrawable(int roll) {
+        switch (roll) {
+            case 1:
+                return R.drawable.basedie1;
+            case 2:
+                return R.drawable.basedie2;
+            case 3:
+                return R.drawable.basedie3;
+            case 4:
+                return R.drawable.basedie4;
+            case 5:
+                return R.drawable.basedie5;
+            case 6:
+                return R.drawable.basedie6;
+            default:
+                return R.drawable.eyedie2; // unrolled state
+        }
+    }
     /**
-	 * this method gets called when the user clicks the '+' or '-' button. It
-	 * creates a new CounterMoveAction to return to the parent activity.
 	 *
 	 * @param button
 	 * 		the button that was clicked
 	 */
 	public void onClick(View button) {
+        if (game == null) return;
+
         if (button.getId() == R.id.regulardie) {
             // send a MOVEMENT dice roll action
             game.sendAction(new MuseumCaperRollDiceAction(this, DiceType.MOVEMENT));
@@ -93,7 +159,10 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	 */
 	@Override
 	public void receiveInfo(GameInfo info) {
-		// ignore the message if it's not a CounterState message
+            if (!(info instanceof MuseumCaperState)) return;
+            this.state = (MuseumCaperState) info;
+            updateDisplay();
+		/*
 		if (info instanceof MuseumCaperState) {
             MuseumCaperState newState = new MuseumCaperState((MuseumCaperState) info);
 
@@ -110,10 +179,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
             } else if (newState.getDiceValue() == 6) {
                 movementDieButton.setImageResource(R.drawable.basedie6);
             }
-
-            // update our state; then update the display
-            //this.state = (MuseumCaperState)info;
-        }
+		 */
 	}
 
 	/**
@@ -123,23 +189,22 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 	 * @param activity
 	 * 		the activity under which we are running
 	 */
-	public void setAsGui(GameMainActivity activity) {
-		// remember the activity
-		myActivity = activity;
-
-	    // Load the layout resource for our GUI
+    public void setAsGui(GameMainActivity activity) {
+        myActivity = activity;
         activity.setContentView(R.layout.museumcaper_human_player);
 
-        //Initialize the widget reference member variables
-        this.playerTurnTextView = (TextView)activity.findViewById(R.id.turnInfo);
-        this.movementDieButton = (ImageButton)activity.findViewById(R.id.regulardie);
-        this.cameraDieButton = (ImageButton)activity.findViewById(R.id.cameradie);
+        // wire up instance variables (NOT local variables)
+        playerTurnTextView = myActivity.findViewById(R.id.turnInfo);
+        movementDieButton = myActivity.findViewById(R.id.regulardie);  // matches layout ID
+        cameraDieButton = myActivity.findViewById(R.id.cameradie);     // matches layout ID
 
-        // make both dice clickable
         movementDieButton.setOnClickListener(this);
         cameraDieButton.setOnClickListener(this);
 
-	}//blah blah
+        if (state != null) {
+            receiveInfo(state);
+        }
+    }//blah blah
 
     @Override
     public int getPlayerNum() {

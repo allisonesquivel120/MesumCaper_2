@@ -84,7 +84,7 @@ public class MuseumCaperMainActivity extends GameMainActivity {
 	 */
 	@Override
 	public LocalGame createLocalGame(GameState state) {
-		if (state == null) state = new MuseumCaperState(0);
+		if (state == null) state = new MuseumCaperState(2);
 		return new MuseumCaperLocalGame(state);
 	}
 

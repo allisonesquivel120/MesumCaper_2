@@ -57,13 +57,7 @@ public class MuseumCaperLocalGame extends LocalGame {
         }
         // move
         if (action instanceof MuseumCaperGuardMoveAction) {
-            boolean success = gameState.makeGuardMoveAction((MuseumCaperGuardMoveAction) action);
-
-            if(success && !gameState.isGameOver())
-            {
-                gameState.runThiefAI();
-            }
-            return success;
+            return gameState.makeGuardMoveAction((MuseumCaperGuardMoveAction) action);
         }
         // dice
         if (action instanceof MuseumCaperRollDiceAction) {
@@ -82,12 +76,7 @@ public class MuseumCaperLocalGame extends LocalGame {
         }
         if (action instanceof MuseumCaperEndTurnAction)
         {
-            boolean success = gameState.makeEndTurnAction((MuseumCaperEndTurnAction)action);
-            if(success && !gameState.isGameOver())
-            {
-                gameState.runThiefAI();
-            }
-            return success;
+            return gameState.makeEndTurnAction((MuseumCaperEndTurnAction) action);
         }
         // unknown action
         return false;
@@ -100,7 +89,7 @@ public class MuseumCaperLocalGame extends LocalGame {
 	protected void sendUpdatedStateTo(GamePlayer p) {
 		// this is a perfect-information game, so we'll make a
 		// complete copy of the state to send to the player
-		p.sendInfo(new MuseumCaperState(this.gameState));
+		p.sendInfo(new MuseumCaperState(this.gameState, p.getPlayerNum()));
 
 	}//sendUpdatedSate
 
@@ -117,16 +106,14 @@ public class MuseumCaperLocalGame extends LocalGame {
 	@Override
 	protected String checkIfGameOver()
     {
-
-        if (gameState.isGameOver()) {
+        if (gameState.isGameOver() && gameState.getWinnerId() != -1) {
             int winner = gameState.getWinnerId();
             if (winner == 0) {
                 return "Thief wins — escaped with the painting!";
             } else {
-                return "Detectives win - the thief was not caught!";
+                return "Detectives win — the thief was caught!";
             }
         }
-
         return null;
     }
 

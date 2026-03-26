@@ -85,8 +85,10 @@ public class MuseumCaperState extends GameState {
      */
     public MuseumCaperState(int numPlayers) {
         this.numPlayers = numPlayers;
-        this.playerTurn = 0; // thief always starts [thief = 0 , guard = 1]
-        this.currentPhase = GamePhase.SETUP;
+        //FOR NOW:
+        this.playerTurn = 0;
+        //this.playerTurn = 0; // thief always starts [thief = 0 , guard = 1]
+        this.currentPhase = GamePhase.GUARD_ROLL;
 
         this.rng = new Random();
 
@@ -211,6 +213,61 @@ public class MuseumCaperState extends GameState {
         this.winnerId = orig.winnerId;
 
         // for future rolls
+        this.rng = new Random();
+    }
+
+    public MuseumCaperState(MuseumCaperState orig, int playerId) {
+        this.playerTurn = orig.playerTurn;
+        this.numPlayers = orig.numPlayers;
+        this.currentPhase = orig.currentPhase;
+
+        this.playerNames = new String[orig.playerNames.length];
+        for (int i = 0; i < playerNames.length; i++) {
+            this.playerNames[i] = orig.playerNames[i];
+        }
+
+        this.thiefVisible = orig.thiefVisible;
+        if (playerId == 0) {
+            // thief sees their own position
+            this.thiefRow = orig.thiefRow;
+            this.thiefCol = orig.thiefCol;
+            this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
+        } else {
+            if (orig.thiefVisible) {
+                this.thiefRow = orig.thiefRow;
+                this.thiefCol = orig.thiefCol;
+            } else {
+                this.thiefRow = -1; // hidden from guards
+                this.thiefCol = -1;
+            }
+            this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
+        }
+
+        this.guardRow = orig.guardRow.clone();
+        this.guardCol = orig.guardCol.clone();
+        this.guardRoomId = orig.guardRoomId.clone();
+        this.thiefRoomId = orig.thiefRoomId;
+
+        this.gameBoard = new char[orig.gameBoard.length][orig.gameBoard[0].length];
+        for (int i = 0; i < gameBoard.length; i++) {
+            this.gameBoard[i] = orig.gameBoard[i].clone();
+        }
+
+        this.roomGrid = new RoomType[NUM_ROWS][NUM_COLS];
+        for (int r = 0; r < NUM_ROWS; r++) {
+            this.roomGrid[r] = orig.roomGrid[r].clone();
+        }
+
+        this.cameras = new boolean[NUM_ROWS][NUM_COLS];
+        for (int r = 0; r < NUM_ROWS; r++) {
+            this.cameras[r] = orig.cameras[r].clone();
+        }
+
+        this.alarmsTriggered = orig.alarmsTriggered.clone();
+        this.movementRoll = orig.movementRoll;
+        this.questionRoll = orig.questionRoll;
+        this.gameOver = orig.gameOver;
+        this.winnerId = orig.winnerId;
         this.rng = new Random();
     }
     // HELPER METHODS
