@@ -5,88 +5,57 @@ import edu.up.cs301.GameFramework.infoMessage.GameInfo;
 import edu.up.cs301.GameFramework.utilities.Tickable;
 
 /**
- * old computer player class for counter game
+ * The AI computer player for Museum Caper.
+ * Currently used as the thief (player 0) — movement is handled automatically
+ * inside MuseumCaperState.runThiefAI(), so this class does nothing for now.
  *
  * @author Farid S.
  * @author Jayden H.
  * @author Allison E.
- *
- * @version Feb. 2026
+ * @version March 2026
  */
 public class MuseumCaperComputerPlayer1 extends GameComputerPlayer implements Tickable {
 
-    /**
-     * Constructor for objects of class CounterComputerPlayer1
-     *
-     * @param name
-     * the player's name
-     */
-    private int guardIndex; // which guard the AI controls
+    // which guard this AI controls (0-indexed) — used if this AI plays as detective
+    private int guardIndex;
 
+    /**
+     * Constructor with guard index.
+     * @param name       the player's display name
+     * @param guardIndex which guard this AI controls (0 = first guard)
+     */
     public MuseumCaperComputerPlayer1(String name, int guardIndex) {
-        // invoke superclass constructor
         super(name);
         this.guardIndex = guardIndex;
     }
 
+    /**
+     * Default constructor — assumes guard index 0.
+     * @param name the player's display name
+     */
     public MuseumCaperComputerPlayer1(String name) {
         super(name);
         this.guardIndex = 0;
     }
 
     /**
-     * callback method--game's state has changed
+     * Receives a game state update and decides what action to take.
+     * Since this AI is currently assigned as the thief (player 0),
+     * and the thief moves automatically inside runThiefAI(), this method
+     * does nothing. The guard logic below is kept for future use if this
+     * AI is ever assigned as a detective instead.
      *
-     * @param info the information (presumably containing the game's state)
+     * @param info the latest game state
      */
     @Override
     protected void receiveInfo(GameInfo info) {
-        if (!(info instanceof MuseumCaperState)) return;
-
-        MuseumCaperState state = (MuseumCaperState) info;
-
-        GamePhase phase = state.getCurrentPhase();
-
-        // Bug fix: handle GUARD_ROLL phase — computer must roll before it can move
-        if (phase == GamePhase.GUARD_ROLL) {
-            game.sendAction(new MuseumCaperRollDiceAction(this, DiceType.MOVEMENT));
-            return;
-        }
-
-        // now handle the move after rolling
-        if (phase == GamePhase.GUARD_MOVE) {
-            int row = state.getGuardRow(guardIndex);
-            int col = state.getGuardCol(guardIndex);
-            int thiefRow = state.getThiefRow();
-            int thiefCol = state.getThiefCol();
-
-            int targetRow = row;
-            int targetCol = col;
-
-            // move toward thief if visible, else move randomly
-            if (thiefRow != -1 && thiefCol != -1) {
-                if (row < thiefRow) targetRow++;
-                else if (row > thiefRow) targetRow--;
-                else if (col < thiefCol) targetCol++;
-                else if (col > thiefCol) targetCol--;
-            } else {
-                if (Math.random() < 0.5) targetRow += (Math.random() < 0.5 ? -1 : 1);
-                else targetCol += (Math.random() < 0.5 ? -1 : 1);
-            }
-
-            // keep within bounds
-            if (targetRow < 0) targetRow = 0;
-            if (targetRow >= MuseumCaperState.NUM_ROWS) targetRow = MuseumCaperState.NUM_ROWS - 1;
-            if (targetCol < 0) targetCol = 0;
-            if (targetCol >= MuseumCaperState.NUM_COLS) targetCol = MuseumCaperState.NUM_COLS - 1;
-
-            game.sendAction(new MuseumCaperGuardMoveAction(this, guardIndex, targetRow, targetCol));
-        }
+        // thief AI movement is handled inside MuseumCaperState.runThiefAI()
+        // nothing to do here for the thief role
     }
 
-        @Override
-        public int getPlayerNum() {
-            return this.playerNum;
-        }
+    /** @return this player's framework-assigned player number */
+    @Override
+    public int getPlayerNum() {
+        return this.playerNum;
     }
-
+}
