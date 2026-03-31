@@ -173,6 +173,47 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
     }
 
     /**
+     * Shows a popup dialog with the full game rules.
+     * Content matches the rules from the project presentation.
+     */
+    private void showRulesDialog() {
+        String rules =
+                "OBJECTIVE\n" +
+                        "• Thief: Steal at least 3 paintings.\n" +
+                        "• Detective: Stop the thief by landing on their space.\n\n" +
+
+                        "SETUP\n" +
+                        "• Place paintings and cameras on the board.\n" +
+                        "• Tap a painting or camera to select it, then tap a tile to place it.\n" +
+                        "• Press 'Done Setting Up' when ready.\n\n" +
+
+                        "THIEF'S TURN\n" +
+                        "• The thief moves automatically 1–3 spaces.\n" +
+                        "• The thief avoids cameras and can disable them by stepping on them.\n" +
+                        "• The thief can steal paintings on their tile.\n\n" +
+
+                        "DETECTIVE'S TURN\n" +
+                        "• Roll the movement die — move up to that many spaces.\n" +
+                        "• Tap a tile on the board to move there.\n" +
+                        "• Landing on the thief's space is an INSTANT WIN!\n\n" +
+
+                        "CAMERA DIE\n" +
+                        "• MOTION (M): Ask what color room the thief is in.\n" +
+                        "• SCAN (S): Ask if any cameras can see the thief.\n" +
+                        "• EYE: Ask if you can see the thief — if yes, thief becomes visible.\n\n" +
+
+                        "WIN CONDITIONS\n" +
+                        "• Thief wins by stealing 3 or more paintings.\n" +
+                        "• Detective wins by landing on the thief's tile.";
+
+        new android.app.AlertDialog.Builder(myActivity)
+                .setTitle("Game Rules")
+                .setMessage(rules)
+                .setPositiveButton("Got it!", null)
+                .show();
+    }
+
+    /**
      * Sets up the GUI when this player becomes the active GUI player.
      * Wires up all interactive elements: dice buttons, board touch listener,
      * painting/camera tap-to-select, and the Done Setup button.
@@ -282,6 +323,12 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
                             MuseumCaperHumanPlayer.this));
                 }
             });
+        }
+
+        // rules button: shows a popup with game rules
+        Button rulesButton = myActivity.findViewById(R.id.rulesBotton);
+        if (rulesButton != null) {
+            rulesButton.setOnClickListener(v -> showRulesDialog());
         }
 
         if (state != null) {
