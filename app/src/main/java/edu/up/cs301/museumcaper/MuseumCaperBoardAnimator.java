@@ -202,13 +202,13 @@ public class MuseumCaperBoardAnimator implements Animator {
             case 'r': return Color.rgb(220, 80,  80);  // red room
             case 'p': return Color.rgb(180, 100, 200); // purple room
             case 'b': return Color.rgb(100, 150, 220); // blue room
-            case 'y': return Color.rgb(240, 220, 80);  // yellow room
-            case 'g': return Color.rgb(100, 200, 120); // green room
+            case 'y': return Color.rgb(255, 186, 8);  // yellow room
+            case 'g': return Color.rgb(106, 153, 78); // green room
             case 'w': return Color.rgb(230, 230, 230); // white room (center)
-            case 'h': return Color.rgb(160, 140, 120); // hallway
-            case 'd': return Color.rgb(120, 80,  40);  // door
+            case 'h': return Color.rgb(214, 204, 194); // hallway
+            case 'd': return Color.rgb(213, 189, 175);  // door
             case 't': return Color.rgb(40,  40,  40);  // inaccessible (dark)
-            default:  return Color.GRAY;
+            default:  return Color.rgb(237, 237, 233);
         }
     }
 
