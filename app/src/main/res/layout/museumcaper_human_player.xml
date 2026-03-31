@@ -24,41 +24,19 @@
         <!-- Left Layout: Contains the game board and the 9 paintings in 1 layout -->
         <FrameLayout
             android:id="@+id/leftColumnLayout"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="3"
-            android:clipChildren="true"
-            android:clipToPadding="true">
+            android:clipChildren="false"
+            android:clipToPadding="false">
+            <!-- SurfaceView board — draws tiles, pieces, cameras -->
+            <edu.up.cs301.museumcaper.MuseumCaperBoardView
+                android:id="@+id/boardSurfaceView"
+                android:layout_width="600dp"
+                android:layout_height="550dp"
+                android:layout_gravity="top|start"
+               />
 
-            <!-- Top-left: Contains the board-map>-->
-            <ImageView
-                android:id="@+id/gameBoardImageView"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:contentDescription="@string/app_name"
-                android:scaleType="fitCenter"
-                android:layout_marginBottom="50dp"
-                android:src="@drawable/finalgameboard"
-                android:clickable="false"
-                android:focusable="false"/>
-
-            <!--Between Left Layout: -->
-
-            <!-- Invisible grid overlay (12 x 11) -->
-            <GridLayout
-                android:id="@+id/boardGrid"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:columnCount="13"
-                android:rowCount="12"
-                android:clickable="false"
-                android:focusable="false"
-                />
-
-            <FrameLayout
-                android:id="@+id/piecesLayer"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
 
             <!-- Bottom-left: Contains only the 9 paintings -->
             <LinearLayout
@@ -359,6 +337,17 @@
                 android:layout_weight="1"
                 android:padding="10dp"
                 android:gravity="center_horizontal">
+                <!-- Done Setup button — only visible during setup phase -->
+                <Button
+                    android:id="@+id/doneSetupButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Done Setting Up"
+                    android:fontFamily="serif"
+                    android:textColor="#FFFFFF"
+                    android:backgroundTint="#8B0000"
+                    android:visibility="visible"
+                    android:layout_marginTop="16dp"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -417,7 +406,7 @@
                             android:scaleType="fitStart"
                             android:clickable="false"
                             android:alpha="0.0"
-                            android:src="@drawable/nocamera" />
+                            android:src="@drawable/cameraworking" />
 
                         <ImageView
                             android:id="@+id/offcamera"
@@ -426,7 +415,7 @@
                             android:layout_weight="1"
                             android:scaleType="fitStart"
                             android:clickable="true"
-                            android:src="@drawable/nocamera" />
+                            android:src="@drawable/cameraworking" />
 
                     </FrameLayout>
 
@@ -443,7 +432,7 @@
                             android:scaleType="fitStart"
                             android:clickable="false"
                             android:alpha="0.0"
-                            android:src="@drawable/nocamera" />
+                            android:src="@drawable/cameraworking" />
 
                         <ImageView
                             android:id="@+id/offcamera1"
@@ -452,7 +441,7 @@
                             android:layout_weight="1"
                             android:scaleType="fitStart"
                             android:clickable="true"
-                            android:src="@drawable/nocamera" />
+                            android:src="@drawable/cameraworking" />
                     </FrameLayout>
 
                     <!--                contains the 3rd camera (x2) on the first row  -->

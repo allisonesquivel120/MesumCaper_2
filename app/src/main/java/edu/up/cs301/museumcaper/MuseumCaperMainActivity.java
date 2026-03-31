@@ -1,7 +1,6 @@
 package edu.up.cs301.museumcaper;
 
 import java.util.ArrayList;
-
 import edu.up.cs301.GameFramework.GameMainActivity;
 import edu.up.cs301.GameFramework.infoMessage.GameState;
 import edu.up.cs301.GameFramework.players.GamePlayer;
@@ -9,7 +8,12 @@ import edu.up.cs301.GameFramework.LocalGame;
 import edu.up.cs301.GameFramework.gameConfiguration.*;
 
 /**
- * this is the primary activity for Counter game
+ * The main activity for Museum Caper.
+ * Configures the players and creates the local game instance.
+ *
+ * Player setup:
+ * - Player 0: Thief (AI) — runs automatically via MuseumCaperComputerPlayer1
+ * - Player 1: Detective (Human) — controlled by the human via MuseumCaperHumanPlayer
  *
  * @author Farid S.
  * @author Jayden H.
@@ -18,71 +22,48 @@ import edu.up.cs301.GameFramework.gameConfiguration.*;
  */
 public class MuseumCaperMainActivity extends GameMainActivity {
 
+    // port number used when playing over the network
+    private static final int PORT_NUMBER = 2234;
 
-// the port number that this game will use when playing over the network
-	private static final int PORT_NUMBER = 2234;
+    /**
+     * Creates the default player configuration for the game.
+     * Sets up one AI thief and one human detective.
+     *
+     * @return the default GameConfig object
+     */
+    @Override
+    public GameConfig createDefaultConfig() {
+        ArrayList<GamePlayerType> playerTypes = new ArrayList<>();
 
-	/**
-	 * Create the default configuration for this game:
-	 * - one human player vs. one computer player
-	 * - minimum of 1 player, maximum of 2
-	 * - one kind of computer player and one kind of human player available
-	 *
-	 * @return
-	 * 		the new configuration object, representing the default configuration
-	 */
-	@Override
-	public GameConfig createDefaultConfig() {
+        // player 0 = thief (AI) — movement handled automatically by MuseumCaperComputerPlayer1
+        playerTypes.add(new GamePlayerType("Thief (AI)") {
+            public GamePlayer createPlayer(String name) {
+                return new MuseumCaperComputerPlayer1(name, 0);
+            }});
 
-		// Define the allowed player types
-		ArrayList<GamePlayerType> playerTypes = new ArrayList<GamePlayerType>();
+        // player 1 = detective (human) — uses the GUI to roll dice and move
+        playerTypes.add(new GamePlayerType("Detective (Human)") {
+            public GamePlayer createPlayer(String name) {
+                return new MuseumCaperHumanPlayer(name, 1);
+            }});
 
-		// player 0 = thief (computer AI)
-		playerTypes.add(new GamePlayerType("Thief (AI)") {
-			public GamePlayer createPlayer(String name) {
-				return new MuseumCaperHumanPlayer(name,-1);
-			}});
+        GameConfig defaultConfig = new GameConfig(playerTypes, 2, 2, "Museum Caper", PORT_NUMBER);
+        defaultConfig.addPlayer("Thief", 0);      // AI thief
+        defaultConfig.addPlayer("Detective", 1);  // human detective
+        defaultConfig.setRemoteData("Remote Player", "", 1);
+        return defaultConfig;
+    }
 
-        // player 1 = detective (human)
-		playerTypes.add(new GamePlayerType("Detective (Human)") {
-			public GamePlayer createPlayer(String name) {
-				return new MuseumCaperComputerPlayer1(name,1);
-			}});
-
-        // player 2 = detective (human)
-		//playerTypes.add(new GamePlayerType("Detective 2 (Human)") {
-		//	public GamePlayer createPlayer(String name) {
-		//		return new MuseumCaperComputerPlayer2(name,0);
-		//	}});
-
-
-		GameConfig defaultConfig = new GameConfig(playerTypes, 2, 2, "Museum Caper",
-				PORT_NUMBER);
-
-		// Add the default players to the configuration
-		defaultConfig.addPlayer("Thief", 0); // player 1: thief AI
-        defaultConfig.addPlayer("Detective", 1); // player 2: human detective
-
-		// Set the default remote-player setup:
-		// - player name: "Remote Player"
-		// - IP code: (empty string)
-		// - default player type: human player
-		defaultConfig.setRemoteData("Remote Player", "", 1);
-
-		// return the configuration
-		return defaultConfig;
-	}//createDefaultConfig
-
-	/**
-	 * create a local game
-	 *
-	 * @return
-	 * 		the local game, a counter game
-	 */
-	@Override
-	public LocalGame createLocalGame(GameState state) {
-		if (state == null) state = new MuseumCaperState(2);
-		return new MuseumCaperLocalGame(state);
-	}
-
+    /**
+     * Creates a new local game instance.
+     * If no existing state is provided, initializes a fresh 2-player game.
+     *
+     * @param state an existing game state to restore, or null for a new game
+     * @return a new MuseumCaperLocalGame instance
+     */
+    @Override
+    public LocalGame createLocalGame(GameState state) {
+        if (state == null) state = new MuseumCaperState(2);
+        return new MuseumCaperLocalGame(state);
+    }
 }

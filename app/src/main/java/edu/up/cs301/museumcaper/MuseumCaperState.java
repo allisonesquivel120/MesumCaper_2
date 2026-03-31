@@ -6,100 +6,118 @@ import java.util.Random;
 
 import edu.up.cs301.GameFramework.infoMessage.GameState;
 
-
 /**
- * This contains the state for the Museum Caper game. The state consist of simply
- * the value of the counter.
+ * This contains the state for the Museum Caper game.
+ * Tracks all game information
+ *
+ * Win conditions:
+ * - Detective wins: lands on the same tile as the thief
+ * - Thief wins: steals at least 3 paintings
  *
  * @author Farid S.
  * @author Jayden H.
  * @author Allison E.
  *
- * @version Feb. 2026
+ * @version March 2026
  */
 public class MuseumCaperState extends GameState {
 
     // to satisfy Serializable interface
     private static final long serialVersionUID = 7737393762469851826L;
-    /**
-     * Fastest sequence of moves to end the game:
-     * 1. The guard lands on the same room/tile as the thief.
-     * This is the shortest legal win condition in this implementation.
-     */
 
-    /**
-     * instance variables
-     */
-    // board information
-    public static final int NUM_ROWS = 11; // number of rows in the grid
-    public static final int NUM_COLS = 12; // number of cols in the grid
+    // =====================================================================
+    // CONSTANTS
+    // =====================================================================
 
-    // board info
-    private RoomType[][] roomGrid; // room system (for dialogue box)
-    private char[][] gameBoard; // game board we created
+    // number of rows & columns in the grid
+    public static final int NUM_ROWS = 11;
+    public static final int NUM_COLS = 12;
 
-    // player + turn info
+    // =====================================================================
+    // INSTANCE VARIABLES
+    // =====================================================================
+
+    // board layout
+    private RoomType[][] roomGrid; // maps each tile to its RoomType enum
+    private char[][] gameBoard; // raw character grid defining the board
+
+    // player and turn tracking
     private String[] playerNames = new String[3];
-    private int playerTurn; // which player's turn it currently is
-    private int numPlayers; // the number of players currently playing the game
-    private GamePhase currentPhase; // the most current phase of the game
+    private int playerTurn; // 0 = thief (AI), 1 = detective (human)
+    private int numPlayers;
+    private GamePhase currentPhase;
 
-    // thief info
-    private int thiefRow; // the current room (row) thief is inside [ detectives can't see this ]
-    private int thiefCol; // the current room (col) thief is inside [ detectives can't see this ]
-    private int thiefRoomId; // compute from tile
-    private boolean thiefVisible; // notifies if the thief is visible or not
-    private ArrayList<Integer> stolenPaintings; // list of paintings the thief as stolen
+    // painting positions — flat index (row * NUM_COLS + col)
+    private int[] paintingPositions;
 
-    // guard info [tile based]
-    private int[] guardRow; // the current room (row) the guard is in
-    private int[] guardCol; // the current room (col) the guard is in
+    // thief info, position is hidden from detective unless thiefVisible is true
+    private int thiefRow;
+    private int thiefCol;
+    private int thiefRoomId;
+    private boolean thiefVisible;
+    private ArrayList<Integer> stolenPaintings;
+
+    // detective info
+    private int[] guardRow;
+    private int[] guardCol;
     private int[] guardRoomId;
 
+    // camera and alarm system
+    private boolean[][] cameras; // true = camera active at that tile
+    private boolean[] alarmsTriggered; // true = thief standing on active camera
 
-    // cameras + alarm system
-    private boolean[][] cameras;
-
-    private boolean[] alarmsTriggered;
-
-    // die 1 + die 2 info
-    private int movementRoll; // die 1
-    private int questionRoll; // die 2
+    // dice
+    private int movementRoll; // result of movement die (1-6)
+    private int questionRoll; // result of question/camera die (1-6)
 
     // game status
-    private boolean gameOver; // notifies if game is over
-    private int winnerId; // -1 = no ones won yet
+    private boolean gameOver;
+    private int winnerId; // -1 = no winner yet, 0 = thief, 1+ = detective index
 
     private transient Random rng;
 
+    // =====================================================================
+    // CONSTRUCTORS
+    // =====================================================================
 
-
-    public MuseumCaperState()
-    {
-        this(3); // how many players are allowed to play
-    }
     /**
-     * default constructor; initialize the variables
+     * Default constructor — creates a 3-player game
+     */
+    public MuseumCaperState() {
+        this(3);
+    }
+
+    /**
+     * Main constructor — initializes all game state for a new game.
+     * Game starts in SETUP phase so the human can place paintings and cameras
+     * before the thief AI takes its first move.
      *
-     * @param numPlayers
+     * @param numPlayers total number of players (including the AI thief)
      */
     public MuseumCaperState(int numPlayers) {
         this.numPlayers = numPlayers;
-        //FOR NOW:
-        this.playerTurn = 0;
-        //this.playerTurn = 0; // thief always starts [thief = 0 , guard = 1]
-        this.currentPhase = GamePhase.GUARD_ROLL;
+
+        // human detective places pieces first during setup
+        this.playerTurn = 1;
+        this.currentPhase = GamePhase.SETUP;
 
         this.rng = new Random();
 
-        // thief starts from the green room entrance [default]
+        // thief starts in the green room (bottom right)
         this.thiefRow = 7;
         this.thiefCol = 11;
-        this.thiefVisible = false;
+
+        // FOR BETA: thief is visible so both players can see movement on the board
+        // TODO: set to false for final release
+        this.thiefVisible = true;
+
         this.stolenPaintings = new ArrayList<>();
 
-        // guard start int the top left of the white room [default]
-        // randomize eventually
+        // all 9 paintings start unplaced (-1 = not on board yet)
+        this.paintingPositions = new int[9];
+        Arrays.fill(paintingPositions, -1);
+
+        // guard starts in the white center room
         int numGuard = Math.max(0, numPlayers - 1);
         this.guardRow = new int[numGuard];
         this.guardCol = new int[numGuard];
@@ -108,6 +126,15 @@ public class MuseumCaperState extends GameState {
             guardCol[i] = 4;
         }
 
+        // 't' = inaccessible corner
+        // 'p' = purple room
+        // 'h' = hallway
+        // 'g' = green room
+        // 'd' = door/entrance
+        // 'r' = red room
+        // 'b' = blue room
+        // 'w' = white room
+        // 'y' = yellow room
         this.gameBoard = new char[][]{
                 {'t', 't', 't', 'r', 'r', 'r', 'r', 'r', 'r', 't', 't', 't'},
                 {'t', 't', 't', 'r', 'r', 'r', 'r', 'r', 'r', 't', 't', 't'},
@@ -121,101 +148,87 @@ public class MuseumCaperState extends GameState {
                 {'t', 't', 't', 'd', 'd', 'h', 'h', 'h', 'h', 't', 't', 't'},
                 {'t', 't', 't', 'd', 'd', 'h', 'h', 'h', 'h', 't', 't', 't'}
         };
-        // convert board char into roomType grid
+
         initRoomGrid();
 
-        // alarmsTriggered + cameras
         this.cameras = new boolean[NUM_ROWS][NUM_COLS];
         this.alarmsTriggered = new boolean[NUM_ROWS * NUM_COLS];
 
-        // dice
         this.movementRoll = 0;
         this.questionRoll = 0;
 
-        // game status
         this.gameOver = false;
         this.winnerId = -1;
 
-        // find initial room Ids
         guardRoomId = new int[numGuard];
         updateRoomIds();
-    }
+    } // Constructor
 
     /**
-     * copy constructor; makes a copy of the original object
+     * Copy constructor — makes a full deep copy of the original state.
      *
-     * @param orig from which the copy should be made
+     * @param orig the state to copy from
      */
     public MuseumCaperState(MuseumCaperState orig) {
         this.playerTurn = orig.playerTurn;
         this.numPlayers = orig.numPlayers;
         this.currentPhase = orig.currentPhase;
 
-        // copy player names
         this.playerNames = new String[orig.playerNames.length];
-        for(int i = 0; i < playerNames.length; i++)
-        {
+        for (int i = 0; i < playerNames.length; i++) {
             this.playerNames[i] = orig.playerNames[i];
         }
 
-        // thief visibility
-        this.thiefVisible = orig.thiefVisible;
-            if(orig.thiefVisible)
-            {
-                // guards only see the thief if visible
-                this.thiefRow = orig.thiefRow;
-                this.thiefCol = orig.thiefCol;
-            }
-            else
-            {
-                this.thiefRow = -1; // hidden from guards
-                this.thiefCol = -1;
-            }
-            // guard also sees stolen paintings
-        this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
+        // deep copy painting positions array
+        this.paintingPositions = orig.paintingPositions.clone();
 
-        // guard position [deep copy]
+        this.thiefVisible = orig.thiefVisible;
+        if (orig.thiefVisible) {
+            this.thiefRow = orig.thiefRow;
+            this.thiefCol = orig.thiefCol;
+        } else {
+            // thief position hidden from detective when not visible
+            this.thiefRow = -1;
+            this.thiefCol = -1;
+        }
+
+        this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
         this.guardRow = orig.guardRow.clone();
         this.guardCol = orig.guardCol.clone();
-
-        // room ids [computed from tiles]
         this.guardRoomId = orig.guardRoomId.clone();
         this.thiefRoomId = orig.thiefRoomId;
 
-        // game board (deep copy)
         this.gameBoard = new char[orig.gameBoard.length][orig.gameBoard[0].length];
         for (int i = 0; i < gameBoard.length; i++) {
             this.gameBoard[i] = orig.gameBoard[i].clone();
         }
 
-        // room grid [deep copy]
         this.roomGrid = new RoomType[NUM_ROWS][NUM_COLS];
         for (int r = 0; r < NUM_ROWS; r++) {
             this.roomGrid[r] = orig.roomGrid[r].clone();
         }
 
-        // cameras [deep copy]
         this.cameras = new boolean[NUM_ROWS][NUM_COLS];
-        for(int r = 0; r < NUM_ROWS; r++)
-        {
+        for (int r = 0; r < NUM_ROWS; r++) {
             this.cameras[r] = orig.cameras[r].clone();
         }
 
-        // alarms
         this.alarmsTriggered = orig.alarmsTriggered.clone();
-
-        // dice
         this.movementRoll = orig.movementRoll;
         this.questionRoll = orig.questionRoll;
-
-        // game status
         this.gameOver = orig.gameOver;
         this.winnerId = orig.winnerId;
-
-        // for future rolls
         this.rng = new Random();
-    }
+    } // copy constructor
 
+    /**
+     * Player-perspective copy constructor — creates a copy filtered for a
+     * specific player's view. The detective cannot see the thief's position
+     * unless thiefVisible is true.
+     *
+     * @param orig     the full game state to copy from
+     * @param playerId the player receiving this copy (0 = thief, 1 = detective)
+     */
     public MuseumCaperState(MuseumCaperState orig, int playerId) {
         this.playerTurn = orig.playerTurn;
         this.numPlayers = orig.numPlayers;
@@ -226,22 +239,27 @@ public class MuseumCaperState extends GameState {
             this.playerNames[i] = orig.playerNames[i];
         }
 
+        // deep copy painting positions — visible to all players
+        this.paintingPositions = orig.paintingPositions.clone();
+
         this.thiefVisible = orig.thiefVisible;
         if (playerId == 0) {
-            // thief sees their own position
+            // thief always sees their own position
             this.thiefRow = orig.thiefRow;
             this.thiefCol = orig.thiefCol;
-            this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
         } else {
+            // detective only sees thief position if thief is visible
             if (orig.thiefVisible) {
                 this.thiefRow = orig.thiefRow;
                 this.thiefCol = orig.thiefCol;
             } else {
-                this.thiefRow = -1; // hidden from guards
+                this.thiefRow = -1;
                 this.thiefCol = -1;
             }
-            this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
         }
+
+        // stolen paintings are visible to all players
+        this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
 
         this.guardRow = orig.guardRow.clone();
         this.guardCol = orig.guardCol.clone();
@@ -269,193 +287,202 @@ public class MuseumCaperState extends GameState {
         this.gameOver = orig.gameOver;
         this.winnerId = orig.winnerId;
         this.rng = new Random();
-    }
-    // HELPER METHODS
-    /**
-     * convert gameBoard characters into RoomType(s)
-     */
-    private void initRoomGrid()
-    {
-        roomGrid = new RoomType[NUM_ROWS][NUM_COLS];
-        for(int r = 0; r < NUM_ROWS; r++)
-        {
-            for(int c = 0; c < NUM_COLS; c++)
-            {
-                roomGrid[r][c] = RoomType.fromChar(gameBoard[r][c]);
-            }
-        }
-    }
+    } // copy constructor
+
+    // =====================================================================
+    // SETUP ACTIONS
+    // =====================================================================
 
     /**
-     * compute room ids from tile positions
-     * - updates room ID's of the thief and guard based on thief current tile position
+     * Handles the human player finishing the setup phase.
+     * Transitions SETUP → THIEF_TURN and runs the thief's opening move.
+     * This must be called AFTER paintings and cameras are placed so the
+     * thief AI has real board data to work with.
+     *
+     * @param a the finish setup action
+     * @return true if setup was successfully completed
      */
-    private void updateRoomIds()
-    {
-        thiefRoomId = roomGrid[thiefRow][thiefCol].ordinal();
-        for(int i = 0; i < guardRow.length; i++)
-        {
-            guardRoomId[i] = roomGrid[guardRow[i]][guardCol[i]].ordinal();
-        }
-    }
+    public boolean makeFinishSetupAction(MuseumCaperFinishSetupAction a) {
+        if (currentPhase != GamePhase.SETUP) return false;
+        playerTurn = 0;
+        currentPhase = GamePhase.THIEF_TURN;
+        runThiefAI(); // thief moves first; ends by setting playerTurn=1, phase=GUARD_ROLL
+        return true;
+    } // makeFinishSetupAction
+
 
     /**
-     * General Action Methods
+     * Records the position of a painting on the board during setup.
+     * Stores the flat index (row * NUM_COLS + col) in paintingPositions
+     * so the animator can draw it on the correct tile.
+     *
+     * @param a the place painting action containing paintingId, row, col
+     * @return true if the painting was successfully placed
      */
+    public boolean makePlacePaintingAction(MuseumCaperPlacePaintingAction a) {
+        if (currentPhase != GamePhase.SETUP) return false;
+        int r = a.getRow();
+        int c = a.getCol();
+        if (!inBounds(r, c)) return false;
+        int id = a.getPaintingId(); // 1-indexed (1–9)
+        paintingPositions[id - 1] = r * NUM_COLS + c; // convert to flat index
+        return true;
+    }// makePlacePaintingAction
 
     /**
-     * verifies that game is != gameOver and that connecting playerId is valid
+     * Places a camera on the board during setup.
+     * The thief AI uses the cameras array to avoid detection.
+     *
+     * @param a the place camera action containing row and col
+     * @return true if the camera was successfully placed
      */
-    public boolean makeConnectAction(MuseumCaperConnectAction a)
-    {
-        if(gameOver)
-        {
-            return false;
-        }
-        // getting plater number of the player who sent action
+    public boolean makePlaceCameraAction(MuseumCaperPlaceCameraAction a) {
+        if (currentPhase != GamePhase.SETUP) return false;
+        int r = a.getRow();
+        int c = a.getCol();
+        if (!inBounds(r, c)) return false;
+        cameras[r][c] = true;
+        return true;
+    } // makePlaceCameraAction
+
+    // =====================================================================
+    // GAME ACTIONS
+    // =====================================================================
+
+    /**
+     * Verifies a player connection is valid — game must not be over
+     * and the player ID must be within range.
+     *
+     * @param a the connect action
+     * @return true if the connection is valid
+     */
+    public boolean makeConnectAction(MuseumCaperConnectAction a) {
+        if (gameOver) return false;
         int playerId = a.getPlayer().getPlayerNum();
-        // checking if player ID is valid
-        if(playerId < 0 || playerId >= numPlayers)
-        {
-            return false;
-        }
-        // means that all checks have been passed = action is allowed
+        return playerId >= 0 && playerId < numPlayers;
+    }// makeConnectAction
+
+    /**
+     * Placeholder for choose-direction action — not yet implemented.
+     *
+     * @param a the choose direction action
+     * @return always true for now
+     */
+    public boolean makeChooseDirectionAction(MuseumCaperChooseDirectionAction a) {
         return true;
     }
+
     /**
-     * handles choose-direction action - currently a placeholder
+     * Sets a player's display name.
+     *
+     * @param a the set name action
+     * @return true always
      */
-    public boolean makeChooseDirectionAction(MuseumCaperChooseDirectionAction a)
-    {
-        int dir = a.getDirection();
-        // placeholder : chosen direction
+    public boolean makeSetNameAction(MuseumCaperSetNameAction a) {
+        int playerId = a.getPlayer().getPlayerNum();
+        playerNames[playerId] = a.getName();
         return true;
     }
+
     /**
-     * marks painting as stolen
-     * - if paintingID not in stolenPainting list it adds it
+     * Marks a painting as stolen by the thief.
+     * Cannot be called during SETUP. If the thief steals 3 or more
+     * paintings, the game ends with the thief winning.
+     *
+     * @param a the mark stolen painting action
+     * @return true if the painting was successfully marked
      */
-    public boolean makeMarkStolenPaintingsAction(MuseumCaperMarkStolenPaintingsAction a)
-    {
+    public boolean makeMarkStolenPaintingsAction(MuseumCaperMarkStolenPaintingsAction a) {
+        if (currentPhase == GamePhase.SETUP) return false;
         int paintingId = a.getPaintingId();
-        if(!stolenPaintings.contains(paintingId))
-        {
+        if (!stolenPaintings.contains(paintingId)) {
             stolenPaintings.add(paintingId);
         }
-        return true;
-    }
-    /**
-     * sets the player's display name
-     */
-    public boolean makeSetNameAction(MuseumCaperSetNameAction a)
-    {
-        int playerId = a.getPlayer().getPlayerNum();
-        String name = a.getName();
-        playerNames[playerId] = name;
-        return true;
-    }
-    /**
-     * ends the current player's turn
-     * - ensure game is not over
-     * - ensure only active player can end their turn
-     */
-    public boolean makeEndTurnAction(MuseumCaperEndTurnAction a)
-    {
-        if(gameOver)
-        {
-            return false;
+        // thief wins by stealing 3 or more paintings
+        if (stolenPaintings.size() >= 3) {
+            gameOver = true;
+            winnerId = 0;
+            currentPhase = GamePhase.ENDGAME;
         }
-        int actingPlayer = a.getPlayer().getPlayerNum();
+        return true;
+    }// makeMarkStolenPaintingsAction
 
-        // thief (player 0) ending turn — run thief AI movement
+    /**
+     * Ends the current player's turn.
+     * If the detective ends their turn, switches to thief.
+     * If the thief ends their turn, runs the AI movement.
+     *
+     * @param a the end turn action
+     * @return true if the turn was successfully ended
+     */
+    public boolean makeEndTurnAction(MuseumCaperEndTurnAction a) {
+        if (gameOver) return false;
+        int actingPlayer = a.getPlayer().getPlayerNum();
         if (actingPlayer == 0) {
             runThiefAI();
             return true;
         }
-        // detective ending turn — switch to thief
         if (actingPlayer != playerTurn) return false;
-        playerTurn = 0; // thief's turn next
+        playerTurn = 0;
         currentPhase = GamePhase.THIEF_TURN;
         return true;
-    }
-    /**
-     * handles dice roll action for the guard(s)
-     * - depending on roll type [movement or question], rolls right die,
-     *   updates phase, and stores result
-     */
-    public boolean makeRollDiceAction(MuseumCaperRollDiceAction a)
-    {
-        if(playerTurn != 1)
-        {
-            return false; // only guard can roll dice
-        }
+    }// makeEndTurnAction
 
-        switch (a.getType())
-        {
+    /**
+     * Handles a dice roll from the detective.
+     * MOVEMENT die: transitions GUARD_ROLL → GUARD_MOVE and stores the roll.
+     * QUESTION die: transitions GUARD_QUESTION → GUARD_ASK and stores the roll.
+     * Phase is checked instead of playerTurn to handle framework player numbering.
+     *
+     * @param a the roll dice action containing the dice type
+     * @return true if the roll was valid and applied
+     */
+    public boolean makeRollDiceAction(MuseumCaperRollDiceAction a) {
+        switch (a.getType()) {
             case MOVEMENT:
-                // guard MUST be in GUARD_ROLL phase to roll movement die
-                if(currentPhase != GamePhase.GUARD_ROLL) return false;
-                movementRoll = rng.nextInt(6) + 1; // roll 1-6
+                if (currentPhase != GamePhase.GUARD_ROLL) return false;
+                movementRoll = rng.nextInt(6) + 1;
                 currentPhase = GamePhase.GUARD_MOVE;
                 return true;
             case QUESTION:
-                // guard rolls question die before asking a question
-                if(currentPhase != GamePhase.GUARD_QUESTION) return false;
-                questionRoll = rng.nextInt(6)+1;
+                if (currentPhase != GamePhase.GUARD_QUESTION) return false;
+                questionRoll = rng.nextInt(6) + 1;
                 currentPhase = GamePhase.GUARD_ASK;
                 return true;
-
             default:
                 return false;
         }
-    }
+    }// makeRollDiceAction
 
-    public int getDiceValue () {
-        return this.movementRoll;
-    }
     /**
-     * handles guard movement action
-     * - validates turn, phase, guardIndex, and movement distance
-     * - moves guard + checks win condition
-     * - hands the turn to thief
+     * Handles the detective moving to a target tile.
+     * Validates the move is within the rolled distance (manhattan distance).
+     * If the detective lands on the thief's tile, the detective wins.
+     * Phase is checked instead of playerTurn to handle framework player numbering.
+     *
+     * @param a the guard move action containing guardIndex, targetRow, targetCol
+     * @return true if the move was valid and applied
      */
-    public boolean makeGuardMoveAction(MuseumCaperGuardMoveAction a)
-    {
-        if(currentPhase != GamePhase.GUARD_MOVE)
-        {
-            return false; // must be in movement phase
-        }
-        if(playerTurn != 1)
-        {
-            return false; // only guard can move here
-        }
-        // identifies which guard is moving
+    public boolean makeGuardMoveAction(MuseumCaperGuardMoveAction a) {
+        if (currentPhase != GamePhase.GUARD_MOVE) return false;
+
         int guardIndex = a.getGuardIndex();
         int tr = a.getTargetRow();
         int tc = a.getTargetCol();
 
-        if(guardIndex < 0 || guardIndex >= guardRow.length)
-        {
-            return false; // = invalid guardIndex
-        }
+        if (guardIndex < 0 || guardIndex >= guardRow.length) return false;
+        if (!inBounds(tr, tc)) return false;
 
+        // validate move distance using manhattan distance (no diagonal jumps)
+        int dist = manhattan(guardRow[guardIndex], guardCol[guardIndex], tr, tc);
+        if (dist > movementRoll) return false;
 
-        if(!inBounds(tr,tc))
-        {
-            return false; // can not move off the board
-        }
-
-        int dist = manhattan(guardRow[guardIndex], guardCol[guardIndex],tr,tc);
-        if(dist > movementRoll)
-        {
-            return false; // movement goes over rolled distance
-        }
         // apply movement
         guardRow[guardIndex] = tr;
         guardCol[guardIndex] = tc;
         updateRoomIds();
 
-        // winner check [checks if guard caught thief]
+        // check win condition — detective catches thief by landing on same tile
         if (tr == thiefRow && tc == thiefCol) {
             gameOver = true;
             winnerId = guardIndex + 1;
@@ -463,78 +490,68 @@ public class MuseumCaperState extends GameState {
             return true;
         }
 
-        // end guard turn move to thief AI
+        // hand turn back to thief AI
         playerTurn = 0;
         currentPhase = GamePhase.THIEF_TURN;
         runThiefAI();
-
         return true;
-    }
+    }// makeGuardMoveAction
+
     /**
-     * handles guard choosing which question to ask after rolling the question die
-     * - records the chosen question
-     * - moves onto the GUARD_ASK phase
+     * Handles the detective choosing a question to ask after rolling
+     * the question die. Records the choice and advances to GUARD_ASK.
+     *
+     * @param a the choose question action
+     * @return true if the question was selected successfully
      */
-    public boolean makeChooseQuestionAction(MuseumCaperChooseQuestionAction a)
-    {
-        if(playerTurn == 0)
-        {
-            return false;
-        }
-        int index = a.getQuestionIndex();
-        System.out.println("Guard chose question index" + index);
+    public boolean makeChooseQuestionAction(MuseumCaperChooseQuestionAction a) {
+        if (playerTurn == 0) return false;
         currentPhase = GamePhase.GUARD_ASK;
         return true;
     }
-    // thief AI movement
-    /**
-     * runs the thief movement
-     * - attempts random paths + avoiding out of bounds tiles and cameras
-     * - after moving --> thief disables cameras on their tile + updates alarms
-     * - thief returns
-     */
-    void runThiefAI()
-    {
-        if(gameOver)
-        {
-            return;
-        }
 
-        int steps = rng.nextInt(3) + 1; // thief move 1-3 steps
-        // attempt up to 10 random movement paths
-        for(int a = 0; a < 10; a++)
-        {
+    // =====================================================================
+    // THIEF AI
+    // =====================================================================
+
+    /**
+     * Runs the thief AI movement for one turn.
+     * The thief attempts up to 10 random paths of 1 to 3 steps,
+     * avoiding out-of-bounds tiles and active cameras.
+     * After moving, disables any camera on the landing tile,
+     * updates alarms, and returns the turn to the detective.
+     */
+    void runThiefAI() {
+        if (gameOver) return;
+
+        int steps = rng.nextInt(3) + 1; // thief moves 1-3 steps per turn
+
+        // attempt up to 10 random paths — accept the first valid one
+        for (int a = 0; a < 10; a++) {
             int r = thiefRow;
             int c = thiefCol;
 
-            for(int s = 0; s < steps; s++)
-            {
+            for (int s = 0; s < steps; s++) {
                 int dir = rng.nextInt(4);
-                switch (dir){
-                    case 0: r--; break;
-                    case 1: r++; break;
-                    case 2: c--; break;
-                    case 3: c++; break;
+                switch (dir) {
+                    case 0: r--; break; // up
+                    case 1: r++; break; // down
+                    case 2: c--; break; // left
+                    case 3: c++; break; // right
                 }
-                if(!inBounds(r,c))
-                {
-                    break; // invalid path
-                }
+                if (!inBounds(r, c)) break;
             }
-            if(!inBounds(r,c))
-            {
-                continue; // reject path
-            }
-            if(cameras[r][c])
-            {
-                continue; // avoid cameras
-            }
+
+            if (!inBounds(r, c)) continue;  // reject out-of-bounds path
+            if (cameras[r][c]) continue;     // reject camera-blocked tile
+
             // accept this path
             thiefRow = r;
             thiefCol = c;
             break;
         }
-        // disable camera if standing on one
+
+        // disable camera if thief lands on one (stretch goal: show visual feedback)
         if (cameras[thiefRow][thiefCol]) {
             cameras[thiefRow][thiefCol] = false;
         }
@@ -542,16 +559,43 @@ public class MuseumCaperState extends GameState {
         updateRoomIds();
         updateAlarms();
 
-        // return turn to guard
+        // return turn to detective
         playerTurn = 1;
         currentPhase = GamePhase.GUARD_ROLL;
         movementRoll = 0;
+    } //runThiefAI
+
+    // =====================================================================
+    // PRIVATE HELPER METHODS
+    // =====================================================================
+
+    /**
+     * Converts the raw gameBoard char array into a RoomType grid.
+     * Called once during construction.
+     */
+    private void initRoomGrid() {
+        roomGrid = new RoomType[NUM_ROWS][NUM_COLS];
+        for (int r = 0; r < NUM_ROWS; r++) {
+            for (int c = 0; c < NUM_COLS; c++) {
+                roomGrid[r][c] = RoomType.fromChar(gameBoard[r][c]);
+            }
+        }
     }
 
-    // HELPER METHODS
     /**
-     * updates the alarm array so each alarm is triggers only if camera is active on tile
-     * and thief is currently standing on said tile
+     * Recomputes room IDs for the thief and all guards based on
+     * their current tile positions.
+     */
+    private void updateRoomIds() {
+        thiefRoomId = roomGrid[thiefRow][thiefCol].ordinal();
+        for (int i = 0; i < guardRow.length; i++) {
+            guardRoomId[i] = roomGrid[guardRow[i]][guardCol[i]].ordinal();
+        }
+    }
+
+    /**
+     * Updates the alarm array. An alarm triggers only when a camera is
+     * active on the exact tile the thief is currently standing on.
      */
     private void updateAlarms() {
         for (int r = 0; r < NUM_ROWS; r++) {
@@ -561,138 +605,90 @@ public class MuseumCaperState extends GameState {
             }
         }
     }
+
     /**
-     * returns true if the given row/col is within the board
+     * Returns true if the given row and column are within the board boundaries.
+     *
+     * @param r row index
+     * @param c column index
+     * @return true if in bounds
      */
     private boolean inBounds(int r, int c) {
         return r >= 0 && r < NUM_ROWS && c >= 0 && c < NUM_COLS;
     }
-    /**
-     * External Cite : CO-PILOT
-     * asked how i could control that the guards could not move diagonally
-     * suggested using Math.abs to set limitations
-     */
 
     /**
-     * computes manhattan distance between two tiles (no diagonals)
+     * Computes the Manhattan distance between two tiles.
+     * Used to validate guard movement — diagonal movement costs 2,
+     * preventing single-step diagonal moves.
+     *
+     * External Citation: Copilot suggested using Math.abs for
+     * Manhattan distance to prevent diagonal movement.
+     *
+     * @param r1 starting row
+     * @param c1 starting column
+     * @param r2 target row
+     * @param c2 target column
+     * @return the Manhattan distance between the two tiles
      */
     private int manhattan(int r1, int c1, int r2, int c2) {
         return Math.abs(r1 - r2) + Math.abs(c1 - c2);
     }
 
+    // =====================================================================
+    // GETTERS
+    // =====================================================================
+
+    public char[][] getGameBoard() { return gameBoard; }
+    public int[] getPaintingPositions() { return paintingPositions.clone(); }
+    public int getThiefRow() { return thiefRow; }
+    public int getThiefCol() { return thiefCol; }
+    public int[] getGuardRow() { return guardRow.clone(); }
+    public int[] getGuardCol() { return guardCol.clone(); }
+    public int getGuardRow(int guardIndex) { return guardRow[guardIndex]; }
+    public int getGuardCol(int guardIndex) { return guardCol[guardIndex]; }
+    public boolean[][] getCameras() { return cameras; }
+    public boolean[] getAlarmTriggered() { return alarmsTriggered.clone(); }
+    public int getMovementRoll() { return movementRoll; }
+    public int getDiceValue() { return movementRoll; }
+    public int getQuestionRoll() { return questionRoll; }
+    public ArrayList<Integer> getStolenPaintings() { return stolenPaintings; }
+    public int getThiefRoomId() { return thiefRoomId; }
+    public int[] getGuardRoomId() { return guardRoomId.clone(); }
+    public boolean isThiefVisible() { return thiefVisible; }
+    public boolean isGameOver() { return gameOver; }
+    public int getWinnerId() { return winnerId; }
+    public int getPlayerTurn() { return playerTurn; }
+    public GamePhase getCurrentPhase() { return currentPhase; }
+
+    // =====================================================================
+    // SETTERS
+    // =====================================================================
+
+    /** @param i the player turn to set (0 = thief, 1 = detective) */
+    public void setPlayerTurn(int i) { playerTurn = i; }
+
+    /** @param phase the game phase to set */
+    public void setGamePhase(GamePhase phase) { currentPhase = phase; }
+
+    /** @param i the movement roll value to set */
+    public void setMovementRoll(int i) { movementRoll = i; }
+
+    /** @param row thief row position */
+    public void setThiefPosition(int row, int col) { thiefRow = row; thiefCol = col; }
+
+    /** @param i total number of players */
+    public void setNumPlayers(int i) { numPlayers = i; }
+
+    /** @param index player index, @param name player display name */
+    public void setPlayerNames(int index, String name) { playerNames[index] = name; }
+
     /**
-     * Getter Methods
-     */
-    public char[][] getGameBoard()
-    {
-        return gameBoard;
-    }
-    public int getThiefRow()
-    {
-        return thiefRow;
-    }
-    public int getThiefCol()
-    {
-        return thiefCol;
-    }
-    public int[] getGuardRow()
-    {
-        return guardRow.clone();
-    }
-    public int[] getGuardCol()
-    {
-        return guardCol.clone();
-    }
-    public boolean[][] getCameras()
-    {
-        return cameras;
-    }
-    public boolean[] getAlarmTriggered()
-    {
-        return alarmsTriggered.clone();
-    }
-    public int getMovementRoll()
-    {
-        return movementRoll;
-    }
-    public ArrayList<Integer> getStolenPaintings()
-    {
-        return stolenPaintings;
-    }
-
-    public int getQuestionRoll()
-    {
-        return questionRoll;
-    }
-    public int getThiefRoomId()
-    {
-        return thiefRoomId;
-    }
-    public int[] getGuardRoomId()
-    { return guardRoomId.clone(); }
-
-    public boolean isThiefVisible()
-    {
-        return thiefVisible;
-    }
-
-    public boolean isGameOver() {
-        return gameOver;
-    }
-
-    public int getWinnerId() {
-        return winnerId;
-    }
-    public int getPlayerTurn() {
-        return playerTurn;
-    }
-    public int getGuardRow(int guardIndex)
-    {
-        return guardRow[guardIndex];
-    }
-    public int getGuardCol(int guardIndex)
-    {
-        return guardCol[guardIndex];
-    }
-    public GamePhase getCurrentPhase() {
-        return currentPhase;
-    }
-
-    @Override
-    public String toString()
-    {
-        return "MuseumCaperState{" +
-                "\n  playerTurn=" + playerTurn +
-                ",\n  thief=(" + thiefRow + "," + thiefCol + ")" +
-                ",\n  guards=" + Arrays.toString(guardRow) + " x " + Arrays.toString(guardCol) +
-                ",\n  movementRoll=" + movementRoll +
-                // ",\n  questionRoll=" + questionRoll +
-                ",\n  gameOver=" + gameOver +
-                ",\n  winnerId=" + winnerId +
-                "\n}";
-
-    }
-
-    // USED FOR THE UNIT TEST, omit before submission
-    public void setPlayerTurn(int i) {
-        playerTurn = i;
-    }
-    // USED FOR THE UNIT TEST, omit before submission
-    public void setGamePhase(GamePhase unfazed) {
-        currentPhase = unfazed;
-    }
-    // USED FOR THE UNIT TEST, omit before submission
-    public void setMovementRoll(int i) {
-        movementRoll = i;
-    }
-    // USED FOR THE UNIT TEST, omit before submission
-    public void setThiefPosition(int row, int col) {
-        thiefRow = row;
-        thiefCol = col;
-    }
-    /**
-     * sets the guard's position for JUNIT test
-     * - ensures test doesn't assigns invalid/out of bound tiles
+     * Sets a guard's position — validates index and bounds before applying.
+     *
+     * @param guardIndex which guard to move
+     * @param row        target row
+     * @param col        target column
      */
     public void setGuardPosition(int guardIndex, int row, int col) {
         if (guardIndex < 0 || guardIndex >= guardRow.length) {
@@ -704,11 +700,21 @@ public class MuseumCaperState extends GameState {
         guardRow[guardIndex] = row;
         guardCol[guardIndex] = col;
     }
-    public void setNumPlayers(int i) {
-        numPlayers = i;
-    }
-    public void setPlayerNames(int index, String name) {
-        playerNames[index] = name;
+
+    // =====================================================================
+    // TO STRING
+    // =====================================================================
+
+    @Override
+    public String toString() {
+        return "MuseumCaperState{" +
+                "\n  playerTurn=" + playerTurn +
+                ",\n  phase=" + currentPhase +
+                ",\n  thief=(" + thiefRow + "," + thiefCol + ")" +
+                ",\n  guards=" + Arrays.toString(guardRow) + " x " + Arrays.toString(guardCol) +
+                ",\n  movementRoll=" + movementRoll +
+                ",\n  gameOver=" + gameOver +
+                ",\n  winnerId=" + winnerId +
+                "\n}";
     }
 }
-
