@@ -474,7 +474,7 @@ public class MuseumCaperState extends GameState {
         if (!inBounds(tr, tc)) return false;
 
         // prevent moving to inaccessible tiles
-        if (gameBoard[tr][tc] == 't' || gameBoard[tr][tc] == 'w') return false;
+        if (gameBoard[tr][tc] == 't') return false;
 
         // validate move distance using manhattan distance (no diagonal jumps)
         int dist = manhattan(guardRow[guardIndex], guardCol[guardIndex], tr, tc);
@@ -544,8 +544,8 @@ public class MuseumCaperState extends GameState {
                 }
                 if (!inBounds(r, c)) break;
 
-                // reject path if it hits a wall or inaccessible tile
-                if (gameBoard[r][c] == 't' || gameBoard[r][c] == 'w') break;
+                // reject path if it hits an inaccessible tile
+                if (gameBoard[r][c] == 't') break;
             }
 
             if (!inBounds(r, c)) continue;  // reject out-of-bounds path
