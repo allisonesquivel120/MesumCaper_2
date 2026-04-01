@@ -324,6 +324,7 @@ public class MuseumCaperState extends GameState {
         int r = a.getRow();
         int c = a.getCol();
         if (!inBounds(r, c)) return false;
+        if (gameBoard[r][c] == 't') return false; //prevents placing in inaccessible tiles
         int id = a.getPaintingId(); // 1-indexed (1–9)
         paintingPositions[id - 1] = r * NUM_COLS + c; // convert to flat index
         return true;
@@ -341,6 +342,7 @@ public class MuseumCaperState extends GameState {
         int r = a.getRow();
         int c = a.getCol();
         if (!inBounds(r, c)) return false;
+        if (gameBoard[r][c] == 't') return false; //prevents placing in inaccessible tiles
         cameras[r][c] = true;
         return true;
     } // makePlaceCameraAction
@@ -527,31 +529,39 @@ public class MuseumCaperState extends GameState {
     void runThiefAI() {
         if (gameOver) return;
 
+        /* pause so the player can see the board before the thief moves
+        try {
+        Thread.sleep(500); // 2 second delay
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }*/
+
         int steps = rng.nextInt(3) + 1; // thief moves 1-3 steps per turn
 
         // attempt up to 10 random paths — accept the first valid one
         for (int a = 0; a < 10; a++) {
             int r = thiefRow;
             int c = thiefCol;
+            boolean hitWall = false;
 
             for (int s = 0; s < steps; s++) {
                 int dir = rng.nextInt(4);
                 switch (dir) {
-                    case 0: r--; break; // up
-                    case 1: r++; break; // down
-                    case 2: c--; break; // left
-                    case 3: c++; break; // right
+                    case 0: r--; break;
+                    case 1: r++; break;
+                    case 2: c--; break;
+                    case 3: c++; break;
                 }
-                if (!inBounds(r, c)) break;
-
-                // reject path if it hits an inaccessible tile
-                if (gameBoard[r][c] == 't') break;
+                if (!inBounds(r, c) || gameBoard[r][c] == 't' || gameBoard[r][c] == 'w') {
+                    hitWall = true;
+                    break;
+                }
             }
 
-            if (!inBounds(r, c)) continue;  // reject out-of-bounds path
-            if (cameras[r][c]) continue;     // reject camera-blocked tile
+            if (hitWall) continue;
+            if (!inBounds(r, c)) continue;
+            if (cameras[r][c]) continue;
 
-            // accept this path
             thiefRow = r;
             thiefCol = c;
             break;
@@ -562,8 +572,33 @@ public class MuseumCaperState extends GameState {
             cameras[thiefRow][thiefCol] = false;
         }
 
+        // check if thief landed on a painting — steal it
+        for (int i = 0; i < paintingPositions.length; i++) {
+            if (paintingPositions[i] == -1) continue; // not placed
+            int paintingRow = paintingPositions[i] / NUM_COLS;
+            int paintingCol = paintingPositions[i] % NUM_COLS;
+            if (thiefRow == paintingRow && thiefCol == paintingCol) {
+                // steal the painting
+                int paintingId = i + 1;
+                if (!stolenPaintings.contains(paintingId)) {
+                    stolenPaintings.add(paintingId);
+                }
+                paintingPositions[i] = -1; // remove from board
+                // check thief win condition
+                if (stolenPaintings.size() >= 3) {
+                    gameOver = true;
+                    winnerId = 0;
+                    currentPhase = GamePhase.ENDGAME;
+                    return;
+                }
+            }
+        }
         updateRoomIds();
         updateAlarms();
+
+        //Temp to verify if cameras work after the thief moves::
+        android.util.Log.d("CAMERA_DEBUG", "thief at (" + thiefRow + "," + thiefCol + ")");
+        android.util.Log.d("CAMERA_DEBUG", "camera disabled: " + !cameras[thiefRow][thiefCol]);
 
         // return turn to detective
         playerTurn = 1;
