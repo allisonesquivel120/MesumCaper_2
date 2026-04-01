@@ -100,6 +100,42 @@ public class MuseumCaperBoardAnimator implements Animator {
             }
         }
 
+        // --- draw borders (thin between same room, thick between different rooms) ---
+        Paint thinBorder = new Paint();
+        thinBorder.setColor(Color.BLACK);
+        thinBorder.setStyle(Paint.Style.STROKE);
+        thinBorder.setStrokeWidth(1f);
+
+        Paint thickBorder = new Paint();
+        thickBorder.setColor(Color.BLACK);
+        thickBorder.setStyle(Paint.Style.STROKE);
+        thickBorder.setStrokeWidth(5f);
+
+        for (int r = 0; r < MuseumCaperState.NUM_ROWS; r++) {
+            for (int c = 0; c < MuseumCaperState.NUM_COLS; c++) {
+                float left   = c * cellW;
+                float top    = r * cellH;
+                float right  = left + cellW;
+                float bottom = top  + cellH;
+
+                // check right neighbor — draw thick border if different room type
+                if (c + 1 < MuseumCaperState.NUM_COLS) {
+                    Paint p = board[r][c] != board[r][c+1] ? thickBorder : thinBorder;
+                    canvas.drawLine(right, top, right, bottom, p);
+                }
+
+                // check bottom neighbor — draw thick border if different room type
+                if (r + 1 < MuseumCaperState.NUM_ROWS) {
+                    Paint p = board[r][c] != board[r+1][c] ? thickBorder : thinBorder;
+                    canvas.drawLine(left, bottom, right, bottom, p);
+                }
+            }
+        }
+
+// draw outer board border
+        thickBorder.setStrokeWidth(8f);
+        canvas.drawRect(0, 0, width, height, thickBorder);
+
         // --- draw cameras ---
         boolean[][] cameras = state.getCameras();
         for (int r = 0; r < MuseumCaperState.NUM_ROWS; r++) {
@@ -166,13 +202,13 @@ public class MuseumCaperBoardAnimator implements Animator {
             case 'r': return Color.rgb(220, 80,  80);  // red room
             case 'p': return Color.rgb(180, 100, 200); // purple room
             case 'b': return Color.rgb(100, 150, 220); // blue room
-            case 'y': return Color.rgb(240, 220, 80);  // yellow room
-            case 'g': return Color.rgb(100, 200, 120); // green room
+            case 'y': return Color.rgb(255, 186, 8);  // yellow room
+            case 'g': return Color.rgb(106, 153, 78); // green room
             case 'w': return Color.rgb(230, 230, 230); // white room (center)
-            case 'h': return Color.rgb(160, 140, 120); // hallway
-            case 'd': return Color.rgb(120, 80,  40);  // door
+            case 'h': return Color.rgb(214, 204, 194); // hallway
+            case 'd': return Color.rgb(213, 189, 175);  // door
             case 't': return Color.rgb(40,  40,  40);  // inaccessible (dark)
-            default:  return Color.GRAY;
+            default:  return Color.rgb(237, 237, 233);
         }
     }
 

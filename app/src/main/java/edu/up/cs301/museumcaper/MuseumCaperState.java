@@ -141,12 +141,12 @@ public class MuseumCaperState extends GameState {
                 {'p', 'p', 'p', 'h', 'h', 'h', 'h', 'h', 'h', 'b', 'b', 'b'},
                 {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'b', 'b', 'b'},
                 {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'b', 'b', 'b'},
-                {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'h', 'h', 'h'},
-                {'h', 'h', 'h', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
+                {'h', 'h', 'h', 'h', 'w', 'w', 'w', 'w', 'h', 'h', 'h', 'h'},
+                {'y', 'y', 'y', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
                 {'y', 'y', 'y', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
                 {'y', 'y', 'y', 'h', 'h', 'h', 'h', 'h', 'h', 'g', 'g', 'g'},
-                {'t', 't', 't', 'd', 'd', 'h', 'h', 'h', 'h', 't', 't', 't'},
-                {'t', 't', 't', 'd', 'd', 'h', 'h', 'h', 'h', 't', 't', 't'}
+                {'t', 't', 't', 'h', 'h', 'h', 'h', 'd', 'd', 't', 't', 't'},
+                {'t', 't', 't', 'h', 'h', 'h', 'h', 'd', 'd', 't', 't', 't'}
         };
 
         initRoomGrid();
@@ -473,6 +473,9 @@ public class MuseumCaperState extends GameState {
         if (guardIndex < 0 || guardIndex >= guardRow.length) return false;
         if (!inBounds(tr, tc)) return false;
 
+        // prevent moving to inaccessible tiles
+        if (gameBoard[tr][tc] == 't' || gameBoard[tr][tc] == 'w') return false;
+
         // validate move distance using manhattan distance (no diagonal jumps)
         int dist = manhattan(guardRow[guardIndex], guardCol[guardIndex], tr, tc);
         if (dist > movementRoll) return false;
@@ -540,6 +543,9 @@ public class MuseumCaperState extends GameState {
                     case 3: c++; break; // right
                 }
                 if (!inBounds(r, c)) break;
+
+                // reject path if it hits a wall or inaccessible tile
+                if (gameBoard[r][c] == 't' || gameBoard[r][c] == 'w') break;
             }
 
             if (!inBounds(r, c)) continue;  // reject out-of-bounds path
