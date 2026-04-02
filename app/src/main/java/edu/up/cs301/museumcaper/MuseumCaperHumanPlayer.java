@@ -37,6 +37,10 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
     private TextView playerTurnTextView;
     private ImageButton movementDieButton;
     private ImageButton cameraDieButton;
+    private int camerasPlaced = 0;
+    private boolean canPlace = true;
+    private static final int MAX_CAMERAS = 6;
+
 
     /**
      * Constructor
@@ -345,6 +349,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
             });
         }
 
+
         // board touch listener: handles both setup placement and guard movement
         if (boardSurfaceView != null) {
             boardSurfaceView.setOnTouchListener((v, event) -> {
@@ -357,14 +362,24 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
                 int col = anim.xToCol(event.getX());
 
                 if (state.getCurrentPhase() == GamePhase.SETUP) {
+                    // prevent multiple triggers from one tap
+                    if(!canPlace) return true;
                     // place the selected painting or camera on the tapped tile
                     if (selectedPaintingId == -1 && selectedCameraId == -1) return true;
+                    // only lock when actually placed
+                    canPlace = false;
                     if (selectedPaintingId != -1) {
                         game.sendAction(new MuseumCaperPlacePaintingAction(
                                 MuseumCaperHumanPlayer.this, selectedPaintingId, row, col));
                     } else {
+                        if(camerasPlaced >= MAX_CAMERAS){
+                            canPlace = true;
+                            return true;
+                        }
                         game.sendAction(new MuseumCaperPlaceCameraAction(
                                 MuseumCaperHumanPlayer.this, selectedCameraId, row, col));
+
+                        camerasPlaced++; // track cameras placed
                     }
                     // dim and disable the placed piece so it can't be moved again
                     if (selectedPieceView != null) {
@@ -374,6 +389,9 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
                     }
                     selectedPaintingId = -1;
                     selectedCameraId   = -1;
+
+                    // small delay to stop double triggering
+                    v.postDelayed(()-> canPlace = true,150);
 
                 } else if (state.getCurrentPhase() == GamePhase.GUARD_MOVE) {
                     // move the guard dot to the tapped tile after rolling
