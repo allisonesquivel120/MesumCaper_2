@@ -39,7 +39,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
     private ImageButton cameraDieButton;
     private int camerasPlaced = 0;
     private boolean canPlace = true;
-    private static final int MAX_CAMERAS = 6;
+    private static final int MAX_CAMERAS = 7;
 
 
     /**
@@ -132,8 +132,23 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         // refresh the board so tiles, guard, thief, cameras, and paintings redraw
         if (boardSurfaceView != null) {
             boardSurfaceView.setState(state);
+            //TODO: boardSurfaceView.setDetectiveIcons(getDetectiveIcons());
         }
     }
+    /**
+     * Returns the drawable resource for the detective figure
+     * TODO: Implement this method
+     */
+//    private int[] getDetectiveIcons() {
+//        // returns drawable IDs for each detective
+//        // Example: different colors/icons per detective
+//        return new int[]{
+//                R.drawable.detective_red,
+//                R.drawable.detective_blue,
+//                R.drawable.detective_green,
+//                R.drawable.detective_yellow
+//        };
+//    }
 
     /**
      * Returns the drawable resource for the movement die face.
@@ -394,9 +409,10 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
                     v.postDelayed(()-> canPlace = true,150);
 
                 } else if (state.getCurrentPhase() == GamePhase.GUARD_MOVE) {
+                    int guardIndex = getPlayerNum() - 1;
                     // move the guard dot to the tapped tile after rolling
                     game.sendAction(new MuseumCaperGuardMoveAction(
-                            MuseumCaperHumanPlayer.this, 0, row, col));
+                            MuseumCaperHumanPlayer.this, guardIndex, row, col));
                 }
                 return true;
             });

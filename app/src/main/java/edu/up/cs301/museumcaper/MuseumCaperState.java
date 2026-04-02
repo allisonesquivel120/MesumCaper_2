@@ -42,7 +42,7 @@ public class MuseumCaperState extends GameState {
     private char[][] gameBoard; // raw character grid defining the board
 
     // player and turn tracking
-    private String[] playerNames = new String[3];
+    private String[] playerNames = new String[4];
     private boolean questionDieUsed = false;
     private boolean movementDieUsed = false;
     private int playerTurn; // 0 = thief (AI), 1 = detective (human)

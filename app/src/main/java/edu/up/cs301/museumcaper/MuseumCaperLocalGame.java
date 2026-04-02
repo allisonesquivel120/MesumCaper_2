@@ -25,7 +25,7 @@ public class MuseumCaperLocalGame extends LocalGame {
      */
     public MuseumCaperLocalGame(GameState state) {
         if (!(state instanceof MuseumCaperState)) {
-            state = new MuseumCaperState(2);
+            state = new MuseumCaperState(4);
         }
         this.gameState = (MuseumCaperState) state;
         super.state = state;
@@ -114,7 +114,11 @@ public class MuseumCaperLocalGame extends LocalGame {
      */
     @Override
     protected void sendUpdatedStateTo(GamePlayer p) {
-        p.sendInfo(new MuseumCaperState(this.gameState, p.getPlayerNum()));
+        // Send full state to all detectives (thief hidden if needed)
+        int playerNum = p.getPlayerNum();
+        MuseumCaperState stateToSend = new MuseumCaperState(this.gameState, playerNum);
+        p.sendInfo(stateToSend);
+        //p.sendInfo(new MuseumCaperState(this.gameState, p.getPlayerNum()));
     }
 
     /**

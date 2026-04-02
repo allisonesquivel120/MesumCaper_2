@@ -47,9 +47,11 @@ public class MuseumCaperMainActivity extends GameMainActivity {
                 return new MuseumCaperHumanPlayer(name, 1);
             }});
 
-        GameConfig defaultConfig = new GameConfig(playerTypes, 2, 2, "Museum Caper", PORT_NUMBER);
+        GameConfig defaultConfig = new GameConfig(playerTypes, 2, 4, "Museum Caper", PORT_NUMBER);
         defaultConfig.addPlayer("Thief", 0);      // AI thief
-        defaultConfig.addPlayer("Detective", 1);  // human detective
+        defaultConfig.addPlayer("Detective 1", 1);  // human detective
+        defaultConfig.addPlayer("Detective 2" , 1); // human detective
+        defaultConfig.addPlayer("Detective 3", 1); // human detective
         defaultConfig.setRemoteData("Remote Player", "", 1);
         return defaultConfig;
     }
