@@ -19,6 +19,8 @@ public enum GamePhase {
     GUARD_ROLL, // detective is rolling for movement
     GUARD_ASK, // detective is asking where thief is
     GUARD_MOVE, // detective is choosing destination
+    GUARD_TURN_START, // detective can roll either die
+    DETECTIVE_REVEAL, // detective reads the answer
     GUARD_QUESTION, // detective is getting asked a question
     ENDGAME // game has ended
 }

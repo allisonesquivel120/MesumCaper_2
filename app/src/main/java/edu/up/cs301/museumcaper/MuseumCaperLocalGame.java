@@ -47,6 +47,11 @@ public class MuseumCaperLocalGame extends LocalGame {
         if (gameState.getCurrentPhase() == GamePhase.SETUP) return true;
         if (gameState.getCurrentPhase() == GamePhase.GUARD_ROLL ||
                 gameState.getCurrentPhase() == GamePhase.GUARD_MOVE) return true;
+        if (gameState.getCurrentPhase() == GamePhase.GUARD_TURN_START) return true;
+        if (gameState.getCurrentPhase() == GamePhase.GUARD_QUESTION ||
+                gameState.getCurrentPhase() == GamePhase.GUARD_ASK ||
+                gameState.getCurrentPhase() == GamePhase.DETECTIVE_REVEAL)
+            return true;
         return playerIdx == gameState.getPlayerTurn();
     }
 
@@ -68,6 +73,12 @@ public class MuseumCaperLocalGame extends LocalGame {
         }
         if (action instanceof MuseumCaperPlaceCameraAction) {
             return gameState.makePlaceCameraAction((MuseumCaperPlaceCameraAction) action);
+        }
+        if (action instanceof MuseumCaperAskQuestionAction) {
+            return gameState.makeAskQuestionAction((MuseumCaperAskQuestionAction) action);
+        }
+        if (action instanceof MuseumCaperFinishRevealAction) {
+            return gameState.makeFinishRevealAction((MuseumCaperFinishRevealAction) action);
         }
         // connection and name actions
         if (action instanceof MuseumCaperSetNameAction) {

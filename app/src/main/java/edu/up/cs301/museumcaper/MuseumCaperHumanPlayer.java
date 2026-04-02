@@ -29,6 +29,9 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
     // tracks which painting or camera is currently selected during setup (-1 = none)
     private int selectedPaintingId = -1;
     private int selectedCameraId = -1;
+    //TEMP flag:
+    private boolean questionPopupShowing = false;
+    private boolean answerPopupShowing = false;
     private ImageView selectedPieceView = null;
     private GameMainActivity myActivity;
     private TextView playerTurnTextView;
@@ -67,7 +70,8 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         if (movementDieButton != null) {
             int roll = state.getMovementRoll();
             movementDieButton.setImageResource(getMovementDieDrawable(roll));
-            boolean canRoll = state.getCurrentPhase() == GamePhase.GUARD_ROLL;
+            boolean canRoll = state.getCurrentPhase() == GamePhase.GUARD_ROLL
+                    || state.getCurrentPhase() == GamePhase.GUARD_TURN_START;
             movementDieButton.setEnabled(canRoll);
             movementDieButton.setAlpha(canRoll ? 1.0f : 0.4f);
         }
@@ -77,7 +81,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
             int roll = state.getQuestionRoll();
             cameraDieButton.setImageResource(getCameraDieDrawable(roll));
             boolean canRoll = state.getCurrentPhase() == GamePhase.GUARD_QUESTION
-                    && state.getPlayerTurn() == getPlayerNum();
+                    || state.getCurrentPhase() == GamePhase.GUARD_TURN_START;
             cameraDieButton.setEnabled(canRoll);
             cameraDieButton.setAlpha(canRoll ? 1.0f : 0.4f);
         }
@@ -87,6 +91,18 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         if (doneSetupButton != null) {
             boolean inSetup = state.getCurrentPhase() == GamePhase.SETUP;
             doneSetupButton.setVisibility(inSetup ? View.VISIBLE : View.GONE);
+        }
+
+        // show question popup when detective has rolled the question die
+        if (state.getCurrentPhase() == GamePhase.GUARD_ASK && !questionPopupShowing) {
+            questionPopupShowing = true;
+            showQuestionPopup();
+        }
+
+        // show answer popup when AI thief has answered
+        if (state.getCurrentPhase() == GamePhase.DETECTIVE_REVEAL && !answerPopupShowing) {
+            answerPopupShowing = true;
+            showAnswerPopup();
         }
 
         // lock paintings and cameras after setup ends so they can't be moved
@@ -137,13 +153,13 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
      */
     private int getCameraDieDrawable(int roll) {
         switch (roll) {
-            case 1: return R.drawable.basedie1;
-            case 2: return R.drawable.basedie2;
-            case 3: return R.drawable.basedie3;
-            case 4: return R.drawable.basedie4;
-            case 5: return R.drawable.basedie5;
-            case 6: return R.drawable.basedie6;
-            default: return R.drawable.eyedie2;
+            case 1: return R.drawable.eyedie_m;  // 1-2 = MOTION
+            case 2: return R.drawable.eyedie_m;
+            case 3: return R.drawable.eyedie_s;  // 3-4 = SCAN
+            case 4: return R.drawable.eyedie_s;
+            case 5: return R.drawable.eyedie2; // 5-6 = EYE
+            case 6: return R.drawable.eyedie2;
+            default: return R.drawable.eyedie2;   // unrolled state
         }
     }
 
@@ -210,6 +226,60 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
                 .setTitle("Game Rules")
                 .setMessage(rules)
                 .setPositiveButton("Got it!", null)
+                .show();
+    }
+
+    /**
+     * Shows a popup telling the detective which question to ask based on
+     * the question die roll. Automatically determines question type from
+     * the rolled value and sends the ask action to get the AI answer.
+     */
+    private void showQuestionPopup() {
+        int roll = state.getQuestionRoll();
+
+        // map die roll to question type
+        // 1-2 = MOTION, 3-4 = SCAN, 5-6 = EYE
+        QuestionType questionType;
+        String questionText;
+        if (roll <= 2) {
+            questionType = QuestionType.MOTION;
+            questionText = "MOTION\n\nAsk the thief:\n\"What color room are you in?\"";
+        } else if (roll <= 4) {
+            questionType = QuestionType.SCAN;
+            questionText = "SCAN\n\nAsk the thief:\n\"Are all cameras working?\"\n\"Can any camera see you?\"";
+        } else {
+            questionType = QuestionType.EYE;
+            questionText = "EYE\n\nAsk the thief:\n\"Can I see you?\"";
+        }
+
+        final QuestionType finalType = questionType;
+        new android.app.AlertDialog.Builder(myActivity)
+                .setTitle("Question Die — Roll: " + roll)
+                .setMessage(questionText)
+                .setCancelable(false)
+                .setPositiveButton("Ask!", (dialog, which) -> {
+                    questionPopupShowing = false;
+                    game.sendAction(new MuseumCaperAskQuestionAction(
+                            MuseumCaperHumanPlayer.this, finalType));
+                })
+                .show();
+    }
+
+    /**
+     * Shows the detective the AI thief's automatic answer.
+     * After dismissing, sends FinishRevealAction to trigger the thief's turn.
+     */
+    private void showAnswerPopup() {
+        String answer = state.getLastQuestionAnswer();
+        new android.app.AlertDialog.Builder(myActivity)
+                .setTitle("Thief's Answer")
+                .setMessage(answer)
+                .setCancelable(false)
+                .setPositiveButton("Got it!", (dialog, which) -> {
+                    answerPopupShowing = false;
+                    game.sendAction(new MuseumCaperFinishRevealAction(
+                            MuseumCaperHumanPlayer.this));
+                })
                 .show();
     }
 
