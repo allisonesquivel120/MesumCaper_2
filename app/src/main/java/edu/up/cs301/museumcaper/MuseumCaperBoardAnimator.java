@@ -100,6 +100,17 @@ public class MuseumCaperBoardAnimator implements Animator {
             }
         }
 
+        // --- draw P label on power room tile (row 10, col 8) ---
+        Paint labelPaint = new Paint();
+        labelPaint.setColor(Color.BLACK);
+        labelPaint.setTextAlign(Paint.Align.CENTER);
+        labelPaint.setTextSize(cellH * 0.6f);
+        labelPaint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+
+        float px = 8 * cellW + cellW / 2f;
+        float py = 10 * cellH + cellH * 0.65f;
+        canvas.drawText("P", px, py, labelPaint);
+
         // --- draw borders (thin between same room, thick between different rooms) ---
         Paint thinBorder = new Paint();
         thinBorder.setColor(Color.BLACK);
