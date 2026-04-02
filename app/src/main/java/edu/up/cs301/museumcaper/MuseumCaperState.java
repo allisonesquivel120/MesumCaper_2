@@ -592,8 +592,8 @@ public class MuseumCaperState extends GameState {
             thiefCol = c;
             break;
         }
-        // if thief lands on power room tile (row 5, col 2) — disable all cameras
-        if (thiefRow == 5 && thiefCol == 2) {
+        // if thief lands on power room tile (row 10, col 8) — disable all cameras
+        if (thiefRow == 10 && thiefCol == 8) {
             for (int r = 0; r < NUM_ROWS; r++) {
                 for (int c = 0; c < NUM_COLS; c++) {
                     cameras[r][c] = false;
