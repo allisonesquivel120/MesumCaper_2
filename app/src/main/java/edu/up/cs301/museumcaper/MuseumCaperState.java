@@ -43,9 +43,13 @@ public class MuseumCaperState extends GameState {
 
     // player and turn tracking
     private String[] playerNames = new String[3];
+    private boolean questionDieUsed = false;
+    private boolean movementDieUsed = false;
     private int playerTurn; // 0 = thief (AI), 1 = detective (human)
     private int numPlayers;
     private GamePhase currentPhase;
+    // stores the AI thief's last answer to the detective's question
+    private String lastQuestionAnswer = "";
 
     // painting positions — flat index (row * NUM_COLS + col)
     private int[] paintingPositions;
@@ -178,7 +182,8 @@ public class MuseumCaperState extends GameState {
         for (int i = 0; i < playerNames.length; i++) {
             this.playerNames[i] = orig.playerNames[i];
         }
-
+        this.questionDieUsed = orig.questionDieUsed;
+        this.movementDieUsed = orig.movementDieUsed;
         // deep copy painting positions array
         this.paintingPositions = orig.paintingPositions.clone();
 
@@ -218,6 +223,7 @@ public class MuseumCaperState extends GameState {
         this.questionRoll = orig.questionRoll;
         this.gameOver = orig.gameOver;
         this.winnerId = orig.winnerId;
+        this.lastQuestionAnswer = orig.lastQuestionAnswer;
         this.rng = new Random();
     } // copy constructor
 
@@ -238,7 +244,8 @@ public class MuseumCaperState extends GameState {
         for (int i = 0; i < playerNames.length; i++) {
             this.playerNames[i] = orig.playerNames[i];
         }
-
+        this.questionDieUsed = orig.questionDieUsed;
+        this.movementDieUsed = orig.movementDieUsed;
         // deep copy painting positions — visible to all players
         this.paintingPositions = orig.paintingPositions.clone();
 
@@ -286,6 +293,7 @@ public class MuseumCaperState extends GameState {
         this.questionRoll = orig.questionRoll;
         this.gameOver = orig.gameOver;
         this.winnerId = orig.winnerId;
+        this.lastQuestionAnswer = orig.lastQuestionAnswer;
         this.rng = new Random();
     } // copy constructor
 
@@ -306,7 +314,7 @@ public class MuseumCaperState extends GameState {
         if (currentPhase != GamePhase.SETUP) return false;
         playerTurn = 0;
         currentPhase = GamePhase.THIEF_TURN;
-        runThiefAI(); // thief moves first; ends by setting playerTurn=1, phase=GUARD_ROLL
+        runThiefAI(); // ends at GUARD_TURN_START now
         return true;
     } // makeFinishSetupAction
 
@@ -442,13 +450,21 @@ public class MuseumCaperState extends GameState {
     public boolean makeRollDiceAction(MuseumCaperRollDiceAction a) {
         switch (a.getType()) {
             case MOVEMENT:
-                if (currentPhase != GamePhase.GUARD_ROLL) return false;
+                // allow rolling from GUARD_TURN_START or GUARD_ROLL
+                if (currentPhase != GamePhase.GUARD_ROLL &&
+                        currentPhase != GamePhase.GUARD_TURN_START) return false;
+                if (movementDieUsed) return false;
                 movementRoll = rng.nextInt(6) + 1;
+                movementDieUsed = true;
                 currentPhase = GamePhase.GUARD_MOVE;
                 return true;
             case QUESTION:
-                if (currentPhase != GamePhase.GUARD_QUESTION) return false;
+                // allow rolling from GUARD_TURN_START or GUARD_QUESTION
+                if (currentPhase != GamePhase.GUARD_QUESTION &&
+                        currentPhase != GamePhase.GUARD_TURN_START) return false;
+                if (questionDieUsed) return false;
                 questionRoll = rng.nextInt(6) + 1;
+                questionDieUsed = true;
                 currentPhase = GamePhase.GUARD_ASK;
                 return true;
             default:
@@ -495,10 +511,19 @@ public class MuseumCaperState extends GameState {
             return true;
         }
 
-        // hand turn back to thief AI
-        playerTurn = 0;
-        currentPhase = GamePhase.THIEF_TURN;
-        runThiefAI();
+        // after moving — check if question die still available
+        if (!questionDieUsed) {
+            playerTurn = 1;
+            currentPhase = GamePhase.GUARD_TURN_START;
+            movementRoll = 0;
+        } else {
+            // both dice used — hand to thief
+            questionDieUsed = false;
+            movementDieUsed = false;
+            playerTurn = 0;
+            currentPhase = GamePhase.THIEF_TURN;
+            runThiefAI();
+        }
         return true;
     }// makeGuardMoveAction
 
@@ -528,13 +553,14 @@ public class MuseumCaperState extends GameState {
      */
     void runThiefAI() {
         if (gameOver) return;
-
-        /* pause so the player can see the board before the thief moves
+        questionDieUsed = false; // reset for next detective turn
+        movementDieUsed = false;
+        // pause so the player can see the board before the thief moves
         try {
         Thread.sleep(500); // 2 second delay
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-        }*/
+        }
 
         int steps = rng.nextInt(3) + 1; // thief moves 1-3 steps per turn
 
@@ -602,9 +628,106 @@ public class MuseumCaperState extends GameState {
 
         // return turn to detective
         playerTurn = 1;
-        currentPhase = GamePhase.GUARD_ROLL;
+        currentPhase = GamePhase.GUARD_TURN_START;
         movementRoll = 0;
     } //runThiefAI
+
+    /**
+     * Handles the detective asking a question after rolling the question die.
+     * The AI thief answers automatically based on the current game state.
+     * Stores the answer string so the detective's popup can display it.
+     * After the question is answered, runs the thief AI turn.
+     *
+     * @param a the ask question action containing the question type
+     * @return true if the question was valid and answered
+     */
+    public boolean makeAskQuestionAction(MuseumCaperAskQuestionAction a) {
+        if (currentPhase != GamePhase.GUARD_ASK) return false;
+
+        switch (a.getQuestionType()) {
+            case MOTION:
+                // thief must reveal their room color unless in hallway
+                char tile = gameBoard[thiefRow][thiefCol];
+                if (tile == 'h') {
+                    lastQuestionAnswer = "The thief is in the hallway — no answer required.";
+                } else {
+                    lastQuestionAnswer = "The thief is in the " + roomColorName(tile) + " room.";
+                }
+                break;
+
+            case SCAN:
+                // count active cameras and check if any can see the thief
+                int activeCount = 0;
+                boolean thiefSeen = false;
+                for (int r = 0; r < NUM_ROWS; r++) {
+                    for (int c = 0; c < NUM_COLS; c++) {
+                        if (cameras[r][c]) {
+                            activeCount++;
+                            // camera sees thief if on same tile
+                            if (r == thiefRow && c == thiefCol) {
+                                thiefSeen = true;
+                            }
+                        }
+                    }
+                }
+                lastQuestionAnswer = activeCount + " camera(s) are active.\n" +
+                        (thiefSeen ? "A camera CAN see the thief!" : "No camera can see the thief.");
+                break;
+
+            case EYE:
+                // check if detective is in the same room as the thief
+                if (roomGrid[guardRow[0]][guardCol[0]] == roomGrid[thiefRow][thiefCol]) {
+                    thiefVisible = true;
+                    lastQuestionAnswer = "YES — the thief is visible! The chase begins!";
+                } else {
+                    lastQuestionAnswer = "No — the thief cannot be seen from here.";
+                }
+                break;
+        }
+        questionDieUsed = true;
+        currentPhase = GamePhase.DETECTIVE_REVEAL;
+        return true;
+    }
+
+    /**
+     * Called after the detective reads the answer popup.
+     * Transitions to the thief's turn and runs the AI.
+     *
+     * @param a the finish reveal action
+     * @return true always
+     */
+    public boolean makeFinishRevealAction(MuseumCaperFinishRevealAction a) {
+        if (currentPhase != GamePhase.DETECTIVE_REVEAL) return false;
+        android.util.Log.d("TURN_DEBUG", "movementDieUsed=" + movementDieUsed + " questionDieUsed=" + questionDieUsed);
+        if (!movementDieUsed) {
+            // movement die not yet used — let detective move
+            currentPhase = GamePhase.GUARD_TURN_START;
+        } else {
+            // movement die already used — hand to thief
+            movementDieUsed = false;
+            questionDieUsed = false;
+            playerTurn = 0;
+            currentPhase = GamePhase.THIEF_TURN;
+            runThiefAI();
+        }
+        return true;
+    }
+
+    /**
+     * Returns a human-readable color name for a board tile character.
+     */
+    private String roomColorName(char tile) {
+        switch (tile) {
+            case 'r': return "Red";
+            case 'p': return "Purple";
+            case 'b': return "Blue";
+            case 'y': return "Yellow";
+            case 'g': return "Green";
+            case 'w': return "White";
+            case 'd': return "Door";
+            default:  return "Unknown";
+        }
+    }
 
     // =====================================================================
     // PRIVATE HELPER METHODS
@@ -681,10 +804,13 @@ public class MuseumCaperState extends GameState {
     // =====================================================================
 
     public char[][] getGameBoard() { return gameBoard; }
+    public String getLastQuestionAnswer() { return lastQuestionAnswer; }
     public int[] getPaintingPositions() { return paintingPositions.clone(); }
     public int getThiefRow() { return thiefRow; }
     public int getThiefCol() { return thiefCol; }
     public int[] getGuardRow() { return guardRow.clone(); }
+    public boolean isMovementDieUsed() { return movementDieUsed; }
+    public boolean isQuestionDieUsed()  { return questionDieUsed; }
     public int[] getGuardCol() { return guardCol.clone(); }
     public int getGuardRow(int guardIndex) { return guardRow[guardIndex]; }
     public int getGuardCol(int guardIndex) { return guardCol[guardIndex]; }
