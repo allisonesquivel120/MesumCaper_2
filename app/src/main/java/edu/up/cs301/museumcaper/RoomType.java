@@ -17,7 +17,9 @@ public enum RoomType {
     BLUE('b'),
     GREEN('g'),
     YELLOW('y'),
-    DARK('d');
+    DOOR('+'),
+    DARKGRAY('o'),
+    POWER('v');
 
     private final char symbol;
 

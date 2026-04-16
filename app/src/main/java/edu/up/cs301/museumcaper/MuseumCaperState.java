@@ -141,16 +141,16 @@ public class MuseumCaperState extends GameState {
         // 'y' = yellow room
         this.gameBoard = new char[][]{
                 {'t', 't', 't', 'r', 'r', 'r', 'r', 'r', 'r', 't', 't', 't'},
-                {'t', 't', 't', 'r', 'r', 'r', 'r', 'r', 'r', 't', 't', 't'},
+                {'t', 't', 't', 'r', '+', 'r', 'r', '+', 'r', 't', 't', 't'},
                 {'p', 'p', 'p', 'h', 'h', 'h', 'h', 'h', 'h', 'b', 'b', 'b'},
-                {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'b', 'b', 'b'},
-                {'p', 'p', 'p', 'h', 'w', 'w', 'w', 'w', 'h', 'b', 'b', 'b'},
-                {'h', 'h', 'h', 'h', 'w', 'w', 'w', 'w', 'h', 'h', 'h', 'h'},
+                {'p', 'p', 'p', 'h', 'w', '+', '+', 'w', 'h', '+', 'b', 'b'},
+                {'p', 'p', '+', 'h', 'w', 'w', 'w', 'w', 'h', 'h', 'h', 'h'},
+                {'h', 'h', 'h', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
                 {'y', 'y', 'y', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
-                {'y', 'y', 'y', 'h', 'w', 'w', 'w', 'w', 'h', 'g', 'g', 'g'},
+                {'y', 'y', '+', 'h', 'w', '+', '+', 'w', 'h', '+', 'g', 'g'},
                 {'y', 'y', 'y', 'h', 'h', 'h', 'h', 'h', 'h', 'g', 'g', 'g'},
-                {'t', 't', 't', 'h', 'h', 'h', 'h', 'd', 'd', 't', 't', 't'},
-                {'t', 't', 't', 'h', 'h', 'h', 'h', 'd', 'd', 't', 't', 't'}
+                {'t', 't', 't', 'o', '+', 'h', 'h', '+', 'v', 't', 't', 't'},
+                {'t', 't', 't', 'o', 'o', 'h', 'h', 'v', 'v', 't', 't', 't'},
         };
 
         initRoomGrid();
@@ -333,6 +333,7 @@ public class MuseumCaperState extends GameState {
         int c = a.getCol();
         if (!inBounds(r, c)) return false;
         if (gameBoard[r][c] == 't') return false; //prevents placing in inaccessible tiles
+        if (gameBoard[r][c] == '+') return false; //prevents placing in "doors"
         int id = a.getPaintingId(); // 1-indexed (1–9)
         paintingPositions[id - 1] = r * NUM_COLS + c; // convert to flat index
         return true;
@@ -351,6 +352,7 @@ public class MuseumCaperState extends GameState {
         int c = a.getCol();
         if (!inBounds(r, c)) return false;
         if (gameBoard[r][c] == 't') return false; //prevents placing in inaccessible tiles
+        if (gameBoard[r][c] == '+') return false; //prevents placing in "doors"
         cameras[r][c] = true;
         return true;
     } // makePlaceCameraAction
@@ -578,7 +580,7 @@ public class MuseumCaperState extends GameState {
                     case 2: c--; break;
                     case 3: c++; break;
                 }
-                if (!inBounds(r, c) || gameBoard[r][c] == 't' || gameBoard[r][c] == 'w') {
+                if (!inBounds(r, c) || gameBoard[r][c] == 't') {
                     hitWall = true;
                     break;
                 }
