@@ -10,6 +10,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.view.View.OnClickListener;
 
+import java.util.Arrays;
+
 /**
  * The human player GUI for Museum Caper.
  * Handles the detective's turn: placing paintings/cameras during setup,
@@ -37,9 +39,10 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
     private TextView playerTurnTextView;
     private ImageButton movementDieButton;
     private ImageButton cameraDieButton;
-    private int camerasPlaced = 0;
+
     private boolean canPlace = true;
     private static final int MAX_CAMERAS = 7;
+    private static final int MAIN_GUARD = 0;
 
 
     /**
@@ -110,24 +113,55 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         }
 
         // lock paintings and cameras after setup ends so they can't be moved
-        boolean inSetup = state.getCurrentPhase() == GamePhase.SETUP;
         int[] paintingViewIds = {
                 R.id.painting1, R.id.painting2, R.id.painting3,
                 R.id.painting4, R.id.painting5, R.id.painting6,
                 R.id.painting7, R.id.painting8, R.id.painting9
         };
-        for (int id : paintingViewIds) {
-            ImageView v = myActivity.findViewById(id);
-            if (v != null) v.setEnabled(inSetup);
+        for (int i = 0; i < paintingViewIds.length; i++) {
+
+            ImageView v = myActivity.findViewById(paintingViewIds[i]);
+            if (v == null) continue;
+
+            boolean placed = state.isPaintingPlaced(i + 1);
+
+            if (placed) {
+                v.setAlpha(0.3f);   // LOCKED (gray)
+                v.setEnabled(false);
+            } else {
+                boolean inSetup = state.getCurrentPhase() == GamePhase.SETUP;
+                v.setAlpha(1.0f);   // AVAILABLE
+                v.setEnabled(inSetup);
+            }
         }
+//        for (int id : paintingViewIds) {
+//            ImageView v = myActivity.findViewById(id);
+//            if (v != null) v.setEnabled(inSetup);
+//        }
         int[] cameraViewIds = {
                 R.id.offcamera, R.id.offcamera1, R.id.oncamera4,
                 R.id.oncamera1, R.id.oncamera2,  R.id.oncamera3
         };
-        for (int id : cameraViewIds) {
-            ImageView v = myActivity.findViewById(id);
-            if (v != null) v.setEnabled(inSetup);
+        for (int i = 0; i < cameraViewIds.length; i++) {
+
+            ImageView v = myActivity.findViewById(cameraViewIds[i]);
+            if (v == null) continue;
+
+            boolean placed = false;
+
+            if (placed) {
+                v.setAlpha(0.3f);
+                v.setEnabled(false);
+            } else {
+                boolean inSetup = state.getCurrentPhase() == GamePhase.SETUP;
+                v.setAlpha(1.0f);
+                v.setEnabled(inSetup);
+            }
         }
+//        for (int id : cameraViewIds) {
+//            ImageView v = myActivity.findViewById(id);
+//            if (v != null) v.setEnabled(inSetup);
+//        }
 
         // refresh the board so tiles, guard, thief, cameras, and paintings redraw
         if (boardSurfaceView != null) {
@@ -200,11 +234,28 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
      * Receives a new game state from the local game and refreshes the display.
      * @param info the game info object (expected to be MuseumCaperState)
      */
+    /**
+     * External Cite: Chatgpt
+     * Had a bug with the paintings not returning to original color
+     * after invalid move
+     * Solution : handle the success and failure in the receive info
+     * rather than in set GUI
+     */
     @Override
     public void receiveInfo(GameInfo info) {
         if (!(info instanceof MuseumCaperState)) return;
         this.state = (MuseumCaperState) info;
+        // update board visuals first
         updateDisplay();
+        // after state update → reflect actual result
+        // [this is where success/failure becomes visible]
+        if (state.getCurrentPhase() != GamePhase.SETUP) {
+            // setup ended → lock any leftover selection visuals
+            if (selectedPieceView != null) {
+                selectedPieceView.setAlpha(1.0f); // restore visual
+                selectedPieceView = null;
+            }
+        }
     }
 
     /**
@@ -378,7 +429,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 
                 if (state.getCurrentPhase() == GamePhase.SETUP) {
                     // prevent multiple triggers from one tap
-                    if(!canPlace) return true;
+                    if (!canPlace) return true;
                     // place the selected painting or camera on the tapped tile
                     if (selectedPaintingId == -1 && selectedCameraId == -1) return true;
                     // only lock when actually placed
@@ -386,30 +437,29 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
                     if (selectedPaintingId != -1) {
                         game.sendAction(new MuseumCaperPlacePaintingAction(
                                 MuseumCaperHumanPlayer.this, selectedPaintingId, row, col));
-                    } else {
-                        if(camerasPlaced >= MAX_CAMERAS){
-                            canPlace = true;
+                    } else if (selectedCameraId != -1) {
+                        if (state.getCameraCount() >= MAX_CAMERAS) {
+                            canPlace = true; // track cameras placed
                             return true;
                         }
                         game.sendAction(new MuseumCaperPlaceCameraAction(
                                 MuseumCaperHumanPlayer.this, selectedCameraId, row, col));
-
-                        camerasPlaced++; // track cameras placed
                     }
-                    // dim and disable the placed piece so it can't be moved again
+
+                    // reset selection immediately (UI state only)
                     if (selectedPieceView != null) {
-                        selectedPieceView.setAlpha(0.3f);
-                        selectedPieceView.setEnabled(false);
+                        selectedPieceView.setAlpha(1.0f); // keep neutral until state confirms
                         selectedPieceView = null;
                     }
-                    selectedPaintingId = -1;
-                    selectedCameraId   = -1;
 
-                    // small delay to stop double triggering
-                    v.postDelayed(()-> canPlace = true,150);
+                    selectedPaintingId = -1;
+                    selectedCameraId = -1;
+
+                    v.postDelayed(() -> canPlace = true, 150);
 
                 } else if (state.getCurrentPhase() == GamePhase.GUARD_MOVE) {
-                    int guardIndex = getPlayerNum() - 1;
+                    //int guardIndex = getPlayerNum() - 1;
+                    int guardIndex = MAIN_GUARD;
                     // move the guard dot to the tapped tile after rolling
                     game.sendAction(new MuseumCaperGuardMoveAction(
                             MuseumCaperHumanPlayer.this, guardIndex, row, col));

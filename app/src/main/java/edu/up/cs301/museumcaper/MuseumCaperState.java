@@ -250,20 +250,9 @@ public class MuseumCaperState extends GameState {
         this.paintingPositions = orig.paintingPositions.clone();
 
         this.thiefVisible = orig.thiefVisible;
-        if (playerId == 0) {
-            // thief always sees their own position
-            this.thiefRow = orig.thiefRow;
-            this.thiefCol = orig.thiefCol;
-        } else {
-            // detective only sees thief position if thief is visible
-            if (orig.thiefVisible) {
-                this.thiefRow = orig.thiefRow;
-                this.thiefCol = orig.thiefCol;
-            } else {
-                this.thiefRow = -1;
-                this.thiefCol = -1;
-            }
-        }
+        // always keep true position internally
+        this.thiefRow = orig.thiefRow;
+        this.thiefCol = orig.thiefCol;
 
         // stolen paintings are visible to all players
         this.stolenPaintings = new ArrayList<>(orig.stolenPaintings);
@@ -334,8 +323,14 @@ public class MuseumCaperState extends GameState {
         if (!inBounds(r, c)) return false;
         if (gameBoard[r][c] == 't') return false; //prevents placing in inaccessible tiles
         if (gameBoard[r][c] == '+') return false; //prevents placing in "doors"
+        int newPos = r * NUM_COLS + c;
+        // prevent stacking paintings
+        for (int pos : paintingPositions) {
+            if (pos == newPos) return false;
+        }
         int id = a.getPaintingId(); // 1-indexed (1–9)
-        paintingPositions[id - 1] = r * NUM_COLS + c; // convert to flat index
+        if (paintingPositions[id - 1] != -1) return false; // prevent placing same painting twice
+        paintingPositions[id - 1] = newPos; // convert to flat index
         return true;
     }// makePlacePaintingAction
 
@@ -499,6 +494,8 @@ public class MuseumCaperState extends GameState {
         // validate move distance using manhattan distance (no diagonal jumps)
         int dist = manhattan(guardRow[guardIndex], guardCol[guardIndex], tr, tc);
         if (dist > movementRoll) return false;
+        // prevent diagonal teleporting
+        if(guardRow[guardIndex] != tr && guardCol[guardIndex] != tc) return false;
 
         // apply movement
         guardRow[guardIndex] = tr;
@@ -558,14 +555,14 @@ public class MuseumCaperState extends GameState {
         questionDieUsed = false; // reset for next detective turn
         movementDieUsed = false;
         // pause so the player can see the board before the thief moves
-        try {
-        Thread.sleep(500); // 2 second delay
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+//        try {
+//        Thread.sleep(500); // 2 second delay
+//        } catch (InterruptedException e) {
+//            Thread.currentThread().interrupt();
+//        }
 
         int steps = rng.nextInt(3) + 1; // thief moves 1-3 steps per turn
-
+        boolean moved = false;
         // attempt up to 10 random paths — accept the first valid one
         for (int a = 0; a < 10; a++) {
             int r = thiefRow;
@@ -575,23 +572,25 @@ public class MuseumCaperState extends GameState {
             for (int s = 0; s < steps; s++) {
                 int dir = rng.nextInt(4);
                 switch (dir) {
-                    case 0: r--; break;
-                    case 1: r++; break;
-                    case 2: c--; break;
-                    case 3: c++; break;
+                    case 0: r--; break; // up
+                    case 1: r++; break; // down
+                    case 2: c--; break; // left
+                    case 3: c++; break; // right
                 }
                 if (!inBounds(r, c) || gameBoard[r][c] == 't') {
                     hitWall = true;
                     break;
                 }
             }
-
+            // reject bad path
             if (hitWall) continue;
-            if (!inBounds(r, c)) continue;
+            //if (!inBounds(r, c)) continue;
+            // avoid camera [if possible]
             if (cameras[r][c]) continue;
 
             thiefRow = r;
             thiefCol = c;
+            moved = true;
             break;
         }
         // if thief lands on power room tile (row 10, col 8) — disable all cameras
@@ -673,8 +672,9 @@ public class MuseumCaperState extends GameState {
                     for (int c = 0; c < NUM_COLS; c++) {
                         if (cameras[r][c]) {
                             activeCount++;
+                            int distance = Math.abs(r - thiefRow) + Math.abs(c - thiefCol);
                             // camera sees thief if on same tile
-                            if (r == thiefRow && c == thiefCol) {
+                            if (distance <= 1) {
                                 thiefSeen = true;
                             }
                         }
@@ -686,8 +686,16 @@ public class MuseumCaperState extends GameState {
 
             case EYE:
                 // check if detective is in the same room as the thief
-                if (roomGrid[guardRow[0]][guardCol[0]] == roomGrid[thiefRow][thiefCol]) {
-                    thiefVisible = true;
+                thiefVisible = false;
+                for (int i = 0; i < guardRow.length; i++) { // checks all guards
+                    if (roomGrid[guardRow[i]][guardCol[i]]
+                            == roomGrid[thiefRow][thiefCol]) {
+                        thiefVisible = true;
+                        break;
+                    }
+                }
+                if(thiefVisible)
+                {
                     lastQuestionAnswer = "YES — the thief is visible! The chase begins!";
                 } else {
                     lastQuestionAnswer = "No — the thief cannot be seen from here.";
@@ -824,7 +832,15 @@ public class MuseumCaperState extends GameState {
     public int[] getGuardCol() { return guardCol.clone(); }
     public int getGuardRow(int guardIndex) { return guardRow[guardIndex]; }
     public int getGuardCol(int guardIndex) { return guardCol[guardIndex]; }
-    public boolean[][] getCameras() { return cameras; }
+    public boolean[][] getCameras()
+    {
+        boolean[][] copy = new boolean[NUM_ROWS][NUM_COLS];
+        for(int r = 0; r < NUM_ROWS; r++)
+        {
+            copy[r] = cameras[r].clone();
+        }
+        return cameras;
+    }
     public boolean[] getAlarmTriggered() { return alarmsTriggered.clone(); }
     public int getMovementRoll() { return movementRoll; }
     public int getDiceValue() { return movementRoll; }
@@ -837,6 +853,15 @@ public class MuseumCaperState extends GameState {
     public int getWinnerId() { return winnerId; }
     public int getPlayerTurn() { return playerTurn; }
     public GamePhase getCurrentPhase() { return currentPhase; }
+    public int getThiefRow(int playerId) {
+        if (playerId != 0 && !thiefVisible) return -1;
+        return thiefRow;
+    }
+    public int getThiefCol(int playerId) {
+        if (playerId != 0 && !thiefVisible) return -1;
+        return thiefCol;
+    }
+
 
     // =====================================================================
     // SETTERS
@@ -876,6 +901,28 @@ public class MuseumCaperState extends GameState {
         }
         guardRow[guardIndex] = row;
         guardCol[guardIndex] = col;
+    }
+
+    /**
+     * helper method for human player class
+     * @return count
+     */
+    public int getCameraCount() {
+        int count = 0;
+        for (int r = 0; r < NUM_ROWS; r++) {
+            for (int c = 0; c < NUM_COLS; c++) {
+                if (cameras[r][c]) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+    public boolean isPaintingPlaced(int id) {
+        return paintingPositions[id - 1] != -1;
+    }
+    public boolean isCameraPlaced(int r, int c) {
+        return cameras[r][c];
     }
 
     // =====================================================================
