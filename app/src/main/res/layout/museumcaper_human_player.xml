@@ -35,6 +35,7 @@
                 android:layout_width="600dp"
                 android:layout_height="550dp"
                 android:layout_gravity="top|start"
+                android:background="@android:color/transparent"
                />
 
 

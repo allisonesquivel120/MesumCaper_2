@@ -3,6 +3,9 @@ package edu.up.cs301.museumcaper;
 import edu.up.cs301.GameFramework.players.GameHumanPlayer;
 import edu.up.cs301.GameFramework.GameMainActivity;
 import edu.up.cs301.GameFramework.infoMessage.GameInfo;
+
+import android.graphics.Color;
+import android.graphics.PixelFormat;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -345,6 +348,19 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 
         // wire up the SurfaceView board
         boardSurfaceView = myActivity.findViewById(R.id.boardSurfaceView);
+        boardSurfaceView.setBackgroundColor(Color.TRANSPARENT);
+
+        /** EXTERNAL CITATION
+         * ChatGPT
+         * 17 April 2026
+         *
+         * Problem: Difficulties making the corners of the board transparent.
+         * Solution: Making the board see-through, putting it over the background
+         * image, and supporting transparency
+         */
+
+        boardSurfaceView.setZOrderOnTop(true);
+        boardSurfaceView.getHolder().setFormat(PixelFormat.TRANSPARENT);
 
         // paintings: tap a painting to select it for placement during setup
         int[] paintingViewIds = {

@@ -4,6 +4,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.view.MotionEvent;
+import android.view.SurfaceView;
 
 import java.util.Arrays;
 
@@ -20,6 +21,8 @@ import edu.up.cs301.GameFramework.animation.Animator;
 public class MuseumCaperBoardAnimator implements Animator {
 
     private volatile MuseumCaperState state;
+
+    //private SurfaceView sv = findViewById(R.id.boardSurfaceView);
     private final Paint paint = new Paint();
     private final Paint gridPaint = new Paint();
     private final Paint guardPaint = new Paint();
@@ -94,9 +97,6 @@ public class MuseumCaperBoardAnimator implements Animator {
                 float bottom = top  + cellH;
 
                 canvas.drawRect(left, top, right, bottom, paint);
-
-                // grid lines
-                canvas.drawRect(left, top, right, bottom, gridPaint);
             }
         }
 
@@ -122,30 +122,58 @@ public class MuseumCaperBoardAnimator implements Animator {
         thickBorder.setStyle(Paint.Style.STROKE);
         thickBorder.setStrokeWidth(5f);
 
+        Paint outerBorder = new Paint();
+        outerBorder.setColor(Color.BLACK);
+        outerBorder.setStyle(Paint.Style.STROKE);
+        outerBorder.setStrokeWidth(8f);
+
         for (int r = 0; r < MuseumCaperState.NUM_ROWS; r++) {
             for (int c = 0; c < MuseumCaperState.NUM_COLS; c++) {
-                float left   = c * cellW;
-                float top    = r * cellH;
-                float right  = left + cellW;
-                float bottom = top  + cellH;
+                float left = c * cellW;
+                float top = r * cellH;
+                float right = left + cellW;
+                float bottom = top + cellH;
 
-                // check right neighbor — draw thick border if different room type
-                if (c + 1 < MuseumCaperState.NUM_COLS) {
-                    Paint p = board[r][c] != board[r][c+1] ? thickBorder : thinBorder;
-                    canvas.drawLine(right, top, right, bottom, p);
-                }
+                if (board[r][c] != 't') {
+                    // draws borders between rooms
+                    // thin borders within rooms, thick borders separating rooms
 
-                // check bottom neighbor — draw thick border if different room type
-                if (r + 1 < MuseumCaperState.NUM_ROWS) {
-                    Paint p = board[r][c] != board[r+1][c] ? thickBorder : thinBorder;
-                    canvas.drawLine(left, bottom, right, bottom, p);
+                    // check right neighbor — draw thick border if different room type
+                    if ((c + 1) < MuseumCaperState.NUM_COLS) {
+                        Paint p = board[r][c] != board[r][c+1] ? thickBorder : thinBorder;
+                        canvas.drawLine(right, top, right, bottom, p);
+                    }
+
+                    // check bottom neighbor — draw thick border if different room type
+                    if ((r + 1) < MuseumCaperState.NUM_ROWS) {
+                        Paint p = board[r][c] != board[r+1][c] ? thickBorder : thinBorder;
+                        canvas.drawLine(left, bottom, right, bottom, p);
+                    }
+
+                    // draws right outer border
+                    if (c == MuseumCaperState.NUM_COLS - 1) {
+                        canvas.drawLine(right, top, right, bottom, outerBorder);
+                    }
+
+                    // draws bottom outer border
+                    if (r == MuseumCaperState.NUM_ROWS - 1) {
+                        canvas.drawLine(left, bottom, right, bottom, outerBorder);
+                    }
+
+                    // draws left outer border
+                    if (c == 0) {
+                        canvas.drawLine(right - cellW, bottom, right - cellW, top, outerBorder);
+                    }
+                } else {
+                    if (((c + 1) < MuseumCaperState.NUM_COLS) && board[r][c+1] != 't') {
+                        canvas.drawLine(right, top, right, bottom, thickBorder);
+                    }
+                    if (((r + 1) < MuseumCaperState.NUM_ROWS) && board[r+1][c] != 't') {
+                        canvas.drawLine(left, bottom, right, bottom, thickBorder);
+                    }
                 }
             }
         }
-
-// draw outer board border
-        thickBorder.setStrokeWidth(8f);
-        canvas.drawRect(0, 0, width, height, thickBorder);
 
         // --- draw cameras ---
         boolean[][] cameras = state.getCameras();
@@ -218,13 +246,13 @@ public class MuseumCaperBoardAnimator implements Animator {
             case 'w': return Color.rgb(230, 230, 230); // white room (center)
             case 'h': return Color.rgb(214, 204, 194); // hallway
             case 'd': return Color.rgb(213, 189, 175);  // door
-            case 't': return Color.rgb(40,  40,  40);  // inaccessible (dark)
+            case 't': return Color.TRANSPARENT;  // inaccessible (dark)
             default:  return Color.rgb(237, 237, 233);
         }
     }
 
     @Override public int interval() { return 100; } // 10fps is enough
-    @Override public int backgroundColor() { return Color.BLACK; }
+    @Override public int backgroundColor() { return Color.TRANSPARENT; }
     @Override public boolean doPause() { return false; }
     @Override public boolean doQuit() { return false; }
     @Override public void onTouch(MotionEvent event) { }
