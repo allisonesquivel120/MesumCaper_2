@@ -321,6 +321,7 @@ public class MuseumCaperState extends GameState {
         if (!inBounds(r, c)) return false;
         if (gameBoard[r][c] == 't') return false; //prevents placing in inaccessible tiles
         if (gameBoard[r][c] == '+') return false; //prevents placing in "doors"
+        if (cameras[r][c]) return false; // prevents placing on cameras
         int newPos = r * NUM_COLS + c;
         // prevent stacking paintings
         for (int pos : paintingPositions) {
@@ -1105,6 +1106,11 @@ public class MuseumCaperState extends GameState {
      * @param col
      */
     public void placeCamera(int id, int row, int col) {
+        for (int i = 0; i < paintingPositions.length; i++) {
+            if ((row * NUM_COLS + col) = paintingPositions[i]) {
+
+            }
+        }
         cameraPlaced[id - 1] = true;
         cameras[row][col] = true;
         cameraCount++;
