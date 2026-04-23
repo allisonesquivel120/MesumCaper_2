@@ -9,7 +9,6 @@ import edu.up.cs301.GameFramework.infoMessage.GameState;
 /**
  * This contains the state for the Museum Caper game.
  * Tracks all game information
- *
  * Win conditions:
  * - Detective wins: lands on the same tile as the thief
  * - Thief wins: steals at least 3 paintings
@@ -39,27 +38,27 @@ public class MuseumCaperState extends GameState {
 
     // board layout
     private RoomType[][] roomGrid; // maps each tile to its RoomType enum
-    private char[][] gameBoard; // raw character grid defining the board
+    private final char[][] gameBoard; // raw character grid defining the board
 
-    // player and turn tracking
+    // player and turn tracking -- not being read
     private String[] playerNames = new String[4];
     private boolean questionDieUsed = false;
     private boolean movementDieUsed = false;
-    private int playerTurn = 1; // 0 = thief (AI), 1 = detective (human)
+    private int playerTurn; // 0 = thief (AI), 1 = detective (human)
     private int numPlayers;
     private GamePhase currentPhase;
     // stores the AI thief's last answer to the detective's question
     private String lastQuestionAnswer = "";
 
     // painting positions — flat index (row * NUM_COLS + col)
-    private int[] paintingPositions;
+    private final int[] paintingPositions;
 
     // thief info, position is hidden from detective unless thiefVisible is true
     private int thiefRow;
     private int thiefCol;
     private int thiefRoomId;
     private boolean thiefVisible;
-    private ArrayList<Integer> stolenPaintings;
+    private final ArrayList<Integer> stolenPaintings;
 
     // detective info
     private int[] guardRow;
@@ -67,7 +66,7 @@ public class MuseumCaperState extends GameState {
     private int[] guardRoomId;
 
     // camera and alarm system
-    private boolean[][] cameras; // true = camera active at that tile
+    private final boolean[][] cameras; // true = camera active at that tile
     private int cameraCount = 0;
     private boolean[] alarmsTriggered; // true = thief standing on active camera
 
@@ -81,7 +80,7 @@ public class MuseumCaperState extends GameState {
 
     // AI
     public enum AIType { DUMB, SMART }
-    private AIType aiType = AIType.SMART; // change to DUMB to test
+    private final AIType aiType = AIType.SMART; // change to DUMB to test
     // extra
     private transient Random rng;
 
@@ -216,6 +215,7 @@ public class MuseumCaperState extends GameState {
         for (int r = 0; r < NUM_ROWS; r++) {
             this.cameras[r] = orig.cameras[r].clone();
         }
+        this.cameraCount = 0;
 
         this.alarmsTriggered = orig.alarmsTriggered.clone();
         this.movementRoll = orig.movementRoll;
@@ -275,6 +275,7 @@ public class MuseumCaperState extends GameState {
         for (int r = 0; r < NUM_ROWS; r++) {
             this.cameras[r] = orig.cameras[r].clone();
         }
+        this.cameraCount = orig.cameraCount;
 
         this.alarmsTriggered = orig.alarmsTriggered.clone();
         this.movementRoll = orig.movementRoll;
@@ -373,16 +374,6 @@ public class MuseumCaperState extends GameState {
         int playerId = a.getPlayer().getPlayerNum();
         return playerId >= 0 && playerId < numPlayers;
     }// makeConnectAction
-
-    /**
-     * Placeholder for choose-direction action — not yet implemented.
-     *
-     * @param a the choose direction action
-     * @return always true for now
-     */
-    public boolean makeChooseDirectionAction(MuseumCaperChooseDirectionAction a) {
-        return true;
-    }
 
     /**
      * Sets a player's display name.
@@ -511,15 +502,15 @@ public class MuseumCaperState extends GameState {
         }
 
         // turn handling
-        if (!questionDieUsed) {
+        if (currentPhase == GamePhase.GUARD_MOVE || currentPhase == GamePhase.GUARD_QUESTION) {
             playerTurn = 1;
             currentPhase = GamePhase.GUARD_TURN_START;
             movementRoll = 0;
             movementDieUsed = false;
             questionDieUsed = false;
         } else {
-            questionDieUsed = false;
             movementDieUsed = false;
+            questionDieUsed = false;
             playerTurn = 0;
             currentPhase = GamePhase.THIEF_TURN;
             runThiefAI();
@@ -881,9 +872,6 @@ public class MuseumCaperState extends GameState {
      * @param r
      * @param c
      * @return
-     */
-
-    /**
      *
      * External Cite : Chatgpt
      * did not know how to control making the AI more likely to
@@ -1002,7 +990,11 @@ public class MuseumCaperState extends GameState {
      * @return
      */
     private boolean isWalkable(int r, int c) {
-        return inBounds(r, c);
+        if (!inBounds(r, c)) return false;
+
+        if (gameBoard[r][c] == 't') return false;
+
+        return true;
     }
 
     /**
