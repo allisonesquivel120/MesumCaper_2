@@ -32,6 +32,45 @@ public class MuseumCaperBoardAnimator implements Animator {
     // tile dimensions — computed on first draw
     private float cellW, cellH;
 
+    // =====================================================================
+    // DOOR BORDER REMOVAL TABLE
+    // Each entry: {row, col, side}
+    // side: 0=top, 1=right, 2=bottom, 3=left
+    // =====================================================================
+    private static final int[][] DOOR_OPEN_SIDES = {
+            {1, 4, 2},   // red left door       — open bottom
+            {1, 7, 2},   // red right door      — open bottom
+            {3, 5, 0},   // white top-left      — open top
+            {3, 6, 0},   // white top-right     — open top
+            {3, 9, 3},   // blue door           — open left
+            {4, 2, 1},   // purple door         — open right
+            {7, 2, 1},   // yellow door         — open right
+            {7, 5, 2},   // white bottom-left   — open bottom
+            {7, 6, 2},   // white bottom-right  — open bottom
+            {7, 9, 3},   // green door          — open left
+            {9, 4, 0},   // dark gray door      — open top
+            {9, 7, 0},   // power door          — open top
+    };
+
+    private static final int[][] DOOR_TILES = {
+            {1, 4},   // red
+            {1, 7},   // red
+            {3, 5},   // white
+            {3, 6},   // white
+            {3, 9},   // blue
+            {4, 2},   // purple
+            {7, 2},   // yellow
+            {7, 5},   // white
+            {7, 6},   // white
+            {7, 9},   // green
+            {9, 4},   // dark gray
+            {9, 7},   // power
+    };
+
+    private static final char[] DOOR_ROOM_CHARS = {
+            'r', 'r', 'w', 'w', 'b', 'p', 'y', 'w', 'w', 'g', 'o', 'v'
+    };
+
     public MuseumCaperBoardAnimator(MuseumCaperState state) {
         this.state = state;
 
@@ -68,6 +107,29 @@ public class MuseumCaperBoardAnimator implements Animator {
         if (cellH == 0) return -1;
         return Math.max(0, Math.min((int)(y / cellH), MuseumCaperState.NUM_ROWS - 1));
     }
+    /**
+     * Returns true if the given side of a door tile should NOT have a border.
+     * side: 0=top, 1=right, 2=bottom, 3=left
+     */
+    private boolean isDoorOpenSide(int r, int c, int side) {
+        for (int[] entry : DOOR_OPEN_SIDES) {
+            if (entry[0] == r && entry[1] == c && entry[2] == side) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     * Returns the room color char that a door tile (+) belongs to.
+     */
+    private char doorRoomChar(int r, int c) {
+        for (int i = 0; i < DOOR_TILES.length; i++) {
+            if (DOOR_TILES[i][0] == r && DOOR_TILES[i][1] == c) {
+                return DOOR_ROOM_CHARS[i];
+            }
+        }
+        return 'h'; // safe fallback
+    }
 
     @Override
     public void tick(Canvas canvas) {
@@ -89,7 +151,8 @@ public class MuseumCaperBoardAnimator implements Animator {
         for (int r = 0; r < MuseumCaperState.NUM_ROWS; r++) {
             for (int c = 0; c < MuseumCaperState.NUM_COLS; c++) {
                 paint.setStyle(Paint.Style.FILL);
-                paint.setColor(colorForTile(board[r][c]));
+                char tile = board[r][c];
+                paint.setColor(tile == '+' ? colorForTile(doorRoomChar(r, c)) : colorForTile(tile));
 
                 float left   = c * cellW;
                 float top    = r * cellH;
@@ -138,16 +201,32 @@ public class MuseumCaperBoardAnimator implements Animator {
                     // draws borders between rooms
                     // thin borders within rooms, thick borders separating rooms
 
-                    // check right neighbor — draw thick border if different room type
-                    if ((c + 1) < MuseumCaperState.NUM_COLS) {
-                        Paint p = board[r][c] != board[r][c+1] ? thickBorder : thinBorder;
-                        canvas.drawLine(right, top, right, bottom, p);
+                    // --- RIGHT border (side 1 of current, side 3 of neighbor) ---
+                    if (c + 1 < MuseumCaperState.NUM_COLS) {
+                        // skip if current tile is a door open on its right side
+                        // OR neighbor tile is a door open on its left side
+                        boolean skip = isDoorOpenSide(r, c, 1)
+                                || isDoorOpenSide(r, c + 1, 3);
+                        if (!skip) {
+                            char here = board[r][c] == '+' ? doorRoomChar(r, c) : board[r][c];
+                            char next = board[r][c+1] == '+' ? doorRoomChar(r, c+1) : board[r][c+1];
+                            Paint p = here != next ? thickBorder : thinBorder;
+                            canvas.drawLine(right, top, right, bottom, p);
+                        }
                     }
 
-                    // check bottom neighbor — draw thick border if different room type
-                    if ((r + 1) < MuseumCaperState.NUM_ROWS) {
-                        Paint p = board[r][c] != board[r+1][c] ? thickBorder : thinBorder;
-                        canvas.drawLine(left, bottom, right, bottom, p);
+                    // --- BOTTOM border (side 2 of current, side 0 of neighbor) ---
+                    if (r + 1 < MuseumCaperState.NUM_ROWS) {
+                        // skip if current tile is a door open on its bottom side
+                        // OR neighbor tile is a door open on its top side
+                        boolean skip = isDoorOpenSide(r, c, 2)
+                                || isDoorOpenSide(r + 1, c, 0);
+                        if (!skip) {
+                            char here = board[r][c] == '+' ? doorRoomChar(r, c) : board[r][c];
+                            char next = board[r+1][c] == '+' ? doorRoomChar(r+1, c) : board[r+1][c];
+                            Paint p = here != next ? thickBorder : thinBorder;
+                            canvas.drawLine(left, bottom, right, bottom, p);
+                        }
                     }
 
                     // draws right outer border
@@ -245,7 +324,8 @@ public class MuseumCaperBoardAnimator implements Animator {
             case 'g': return Color.rgb(106, 153, 78); // green room
             case 'w': return Color.rgb(230, 230, 230); // white room (center)
             case 'h': return Color.rgb(214, 204, 194); // hallway
-            case 'd': return Color.rgb(213, 189, 175);  // door
+            case 'o': return Color.rgb( 90,  90,  90);  // dark gray room
+            case 'v': return Color.rgb( 60,  60,  60);  // power room
             case 't': return Color.TRANSPARENT;  // inaccessible (dark)
             default:  return Color.rgb(237, 237, 233);
         }
