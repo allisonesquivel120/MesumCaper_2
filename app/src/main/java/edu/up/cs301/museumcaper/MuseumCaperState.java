@@ -446,20 +446,15 @@ public class MuseumCaperState extends GameState {
      * @return true if the roll was valid and applied
      */
     public boolean makeRollDiceAction(MuseumCaperRollDiceAction a) {
+        if (currentPhase != GamePhase.GUARD_TURN_START) return false;
         switch (a.getType()) {
             case MOVEMENT:
-                // allow rolling from GUARD_TURN_START or GUARD_ROLL
-                if (currentPhase != GamePhase.GUARD_ROLL &&
-                        currentPhase != GamePhase.GUARD_TURN_START) return false;
                 if (movementDieUsed) return false;
                 movementRoll = rng.nextInt(6) + 1;
                 movementDieUsed = true;
                 currentPhase = GamePhase.GUARD_MOVE;
                 return true;
             case QUESTION:
-                // allow rolling from GUARD_TURN_START or GUARD_QUESTION
-                if (currentPhase != GamePhase.GUARD_QUESTION &&
-                        currentPhase != GamePhase.GUARD_TURN_START) return false;
                 if (questionDieUsed) return false;
                 questionRoll = rng.nextInt(6) + 1;
                 questionDieUsed = true;
@@ -482,6 +477,7 @@ public class MuseumCaperState extends GameState {
     public boolean makeGuardMoveAction(MuseumCaperGuardMoveAction a) {
 
         if (currentPhase != GamePhase.GUARD_MOVE) return false;
+        if (movementRoll <= 0) return false; // prevents moving without dice
 
         int guardIndex = a.getGuardIndex();
         int tr = a.getTargetRow();
@@ -575,6 +571,8 @@ public class MuseumCaperState extends GameState {
         playerTurn = 1;
         currentPhase = GamePhase.GUARD_TURN_START;
         // resets dice after next turn
+        movementDieUsed = false;
+        questionDieUsed = false;
         movementRoll = 0;
         questionRoll = 0;
     }
@@ -751,10 +749,8 @@ public class MuseumCaperState extends GameState {
         if (!movementDieUsed) {
             // movement die not yet used — let detective move
             currentPhase = GamePhase.GUARD_TURN_START;
+            return true;
         } else {
-            // movement die already used — hand to thief
-            movementDieUsed = false;
-            questionDieUsed = false;
             playerTurn = 0;
             currentPhase = GamePhase.THIEF_TURN;
             runThiefAI();

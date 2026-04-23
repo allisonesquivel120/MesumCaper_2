@@ -49,6 +49,10 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
     private boolean canPlace = true;
     // tracks which camera have already been used [index = cameraId - 1]
     private boolean[] cameraUsed = new boolean[6];
+    // prevent multiple clicks per turn
+    private boolean movementDieUsed = false;
+    private boolean cameraDieUsed = false;
+    private GamePhase lastPhase = null;
     private static final int MAIN_GUARD = 0;
 
 
@@ -74,27 +78,38 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
     protected void updateDisplay() {
         if (state == null || myActivity == null) return;
 
+        GamePhase currentPhase = state.getCurrentPhase();
+        // reset only when entering GUARD_TURN_START
+        if (currentPhase == GamePhase.GUARD_TURN_START &&
+                lastPhase != GamePhase.GUARD_TURN_START) {
+            movementDieUsed = false;
+            cameraDieUsed = false;
+        }
+        lastPhase = currentPhase;
+
         // update turn indicator text
         if (playerTurnTextView != null) {
             int turn = state.getPlayerTurn();
             playerTurnTextView.setText(turn == 0 ? "Thief's Turn" : this.name + "'s Turn");
         }
-        // enable movement die only during GUARD_ROLL phase
+        boolean isGuardTurnStart = state.getCurrentPhase() == GamePhase.GUARD_TURN_START;
+
+        // movement die
         if (movementDieButton != null) {
             int roll = state.getMovementRoll();
             movementDieButton.setImageResource(getMovementDieDrawable(roll));
-            boolean canRoll = state.getCurrentPhase() == GamePhase.GUARD_ROLL
-                    || state.getCurrentPhase() == GamePhase.GUARD_TURN_START;
+
+            boolean canRoll = isGuardTurnStart && !movementDieUsed;
             movementDieButton.setEnabled(canRoll);
             movementDieButton.setAlpha(canRoll ? 1.0f : 0.4f);
         }
 
-        // enable camera die only during GUARD_QUESTION phase
+        // camera die
         if (cameraDieButton != null) {
             int roll = state.getQuestionRoll();
             cameraDieButton.setImageResource(getCameraDieDrawable(roll));
-            boolean canRoll = state.getCurrentPhase() == GamePhase.GUARD_QUESTION
-                    || state.getCurrentPhase() == GamePhase.GUARD_TURN_START;
+
+            boolean canRoll = isGuardTurnStart && !cameraDieUsed;
             cameraDieButton.setEnabled(canRoll);
             cameraDieButton.setAlpha(canRoll ? 1.0f : 0.4f);
         }
@@ -214,13 +229,20 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
      */
     @Override
     public void onClick(View button) {
-        if (game == null) return;
+        if (game == null || state == null) return;
+
+        // only allow clicks at start of guard turn
+        if (state.getCurrentPhase() != GamePhase.GUARD_TURN_START) return;
         if (button.getId() == R.id.regulardie) {
+            if (movementDieUsed) return;
+            movementDieUsed = true;
             game.sendAction(new MuseumCaperRollDiceAction(this, DiceType.MOVEMENT));
         } else if (button.getId() == R.id.cameradie) {
+            if (cameraDieUsed) return;
+            cameraDieUsed = true;
             game.sendAction(new MuseumCaperRollDiceAction(this, DiceType.QUESTION));
         }
-    } // onClick
+    }// onClick
 
     /**
      * Receives a new game state from the local game and refreshes the display.
