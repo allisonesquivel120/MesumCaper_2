@@ -4,6 +4,7 @@ import edu.up.cs301.GameFramework.players.GameHumanPlayer;
 import edu.up.cs301.GameFramework.GameMainActivity;
 import edu.up.cs301.GameFramework.infoMessage.GameInfo;
 
+import android.annotation.SuppressLint;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.view.View;
@@ -335,6 +336,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
      *
      * @param activity the main game activity
      */
+    @SuppressLint("ClickableViewAccessibility")
     public void setAsGui(GameMainActivity activity) {
         myActivity = activity;
         activity.setContentView(R.layout.museumcaper_human_player);
@@ -387,10 +389,12 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
                 R.id.offcamera, R.id.offcamera1, R.id.oncamera4,
                 R.id.oncamera1, R.id.oncamera2, R.id.oncamera3
         };
+
+
         for (int i = 0; i < cameraViewIds.length; i++) {
             final int cameraId = i + 1; // identifies which camera
 
-            ImageView v = myActivity.findViewById(cameraViewIds[i]);
+           ImageView v = myActivity.findViewById(cameraViewIds[i]);
             if (v == null) continue;
 
             v.setOnClickListener(view -> {

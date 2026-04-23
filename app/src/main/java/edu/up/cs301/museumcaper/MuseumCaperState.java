@@ -45,7 +45,7 @@ public class MuseumCaperState extends GameState {
     private String[] playerNames = new String[4];
     private boolean questionDieUsed = false;
     private boolean movementDieUsed = false;
-    private int playerTurn; // 0 = thief (AI), 1 = detective (human)
+    private int playerTurn = 1; // 0 = thief (AI), 1 = detective (human)
     private int numPlayers;
     private GamePhase currentPhase;
     // stores the AI thief's last answer to the detective's question
@@ -53,8 +53,6 @@ public class MuseumCaperState extends GameState {
 
     // painting positions — flat index (row * NUM_COLS + col)
     private int[] paintingPositions;
-    private boolean[] cameraPlaced = new boolean[6];
-    private int cameraCount = 0;
 
     // thief info, position is hidden from detective unless thiefVisible is true
     private int thiefRow;
@@ -70,6 +68,7 @@ public class MuseumCaperState extends GameState {
 
     // camera and alarm system
     private boolean[][] cameras; // true = camera active at that tile
+    private int cameraCount = 0;
     private boolean[] alarmsTriggered; // true = thief standing on active camera
 
     // dice
@@ -80,8 +79,10 @@ public class MuseumCaperState extends GameState {
     private boolean gameOver;
     private int winnerId; // -1 = no winner yet, 0 = thief, 1+ = detective index
 
+    // AI
     public enum AIType { DUMB, SMART }
     private AIType aiType = AIType.SMART; // change to DUMB to test
+    // extra
     private transient Random rng;
 
     // =====================================================================
@@ -324,9 +325,7 @@ public class MuseumCaperState extends GameState {
         if (cameras[r][c]) return false; // prevents placing on cameras
         int newPos = r * NUM_COLS + c;
         // prevent stacking paintings
-        for (int pos : paintingPositions) {
-            if (pos == newPos) return false;
-        }
+        if (isPaintingAt(r, c)) return false;
         int id = a.getPaintingId(); // 1-indexed (1–9)
         if (paintingPositions[id - 1] != -1) return false; // prevent placing same painting twice
         paintingPositions[id - 1] = newPos; // convert to flat index
@@ -342,12 +341,19 @@ public class MuseumCaperState extends GameState {
      */
     public boolean makePlaceCameraAction(MuseumCaperPlaceCameraAction a) {
         if (currentPhase != GamePhase.SETUP) return false;
+
         int r = a.getRow();
         int c = a.getCol();
         if (!inBounds(r, c)) return false;
-        if (gameBoard[r][c] == 't') return false; //prevents placing in inaccessible tiles
-        if (gameBoard[r][c] == '+') return false; //prevents placing in "doors"
+        if (gameBoard[r][c] == 't' || gameBoard[r][c] == '+') return false;
+
+        if (cameras[r][c]) return false; // prevent stacking cameras
+
+        if (cameraCount >= 6) return false; // limit to 6 cameras
+
         cameras[r][c] = true;
+        cameraCount++;
+
         return true;
     } // makePlaceCameraAction
 
@@ -399,17 +405,8 @@ public class MuseumCaperState extends GameState {
      * @return true if the painting was successfully marked
      */
     public boolean makeMarkStolenPaintingsAction(MuseumCaperMarkStolenPaintingsAction a) {
-        if (currentPhase == GamePhase.SETUP) return false;
-        int paintingId = a.getPaintingId();
-        if (!stolenPaintings.contains(paintingId)) {
-            stolenPaintings.add(paintingId);
-        }
-        // thief wins by stealing 3 or more paintings
-        if (stolenPaintings.size() >= 3) {
-            gameOver = true;
-            winnerId = 0;
-            currentPhase = GamePhase.ENDGAME;
-        }
+        // NO LONGER USED FOR GAME LOGIC
+        // keep only for compatibility or remove entirely
         return true;
     }// makeMarkStolenPaintingsAction
 
@@ -478,6 +475,7 @@ public class MuseumCaperState extends GameState {
      * @return true if the move was valid and applied
      */
     public boolean makeGuardMoveAction(MuseumCaperGuardMoveAction a) {
+
         if (currentPhase != GamePhase.GUARD_MOVE) return false;
 
         int guardIndex = a.getGuardIndex();
@@ -490,18 +488,21 @@ public class MuseumCaperState extends GameState {
         // prevent moving to inaccessible tiles
         if (!isWalkable(tr, tc)) return false;
 
-        // validate move distance using manhattan distance (no diagonal jumps)
+        // validate move distance using manhattan distance
         int dist = manhattan(guardRow[guardIndex], guardCol[guardIndex], tr, tc);
         if (dist > movementRoll) return false;
-        // prevent diagonal teleporting
-        if(guardRow[guardIndex] != tr && guardCol[guardIndex] != tc) return false;
+
+        // enforces walls / path rules
+        if (!isValidFullPath(guardRow[guardIndex], guardCol[guardIndex], tr, tc)) {
+            return false;
+        }
 
         // apply movement
         guardRow[guardIndex] = tr;
         guardCol[guardIndex] = tc;
         updateRoomIds();
 
-        // check win condition — detective catches thief by landing on same tile
+        // win condition [only once]
         if (tr == thiefRow && tc == thiefCol) {
             gameOver = true;
             winnerId = guardIndex + 1;
@@ -509,7 +510,7 @@ public class MuseumCaperState extends GameState {
             return true;
         }
 
-        // after moving — check if question die still available
+        // turn handling
         if (!questionDieUsed) {
             playerTurn = 1;
             currentPhase = GamePhase.GUARD_TURN_START;
@@ -517,13 +518,13 @@ public class MuseumCaperState extends GameState {
             movementDieUsed = false;
             questionDieUsed = false;
         } else {
-            // both dice used — hand to thief
             questionDieUsed = false;
             movementDieUsed = false;
             playerTurn = 0;
             currentPhase = GamePhase.THIEF_TURN;
             runThiefAI();
         }
+
         return true;
     }// makeGuardMoveAction
 
@@ -856,30 +857,23 @@ public class MuseumCaperState extends GameState {
         };
         // tries each direction
         for (int[] d : dirs) {
+            int r = thiefRow;
+            int c = thiefCol;
             for (int step = 1; step <= 3; step++) {
 
-                int nr = thiefRow;
-                int nc = thiefCol;
+                int nr = r + d[0];
+                int nc = c + d[1];
 
-                boolean valid = true;
+                if(!isLegalMove(r,c,nr,nc)){ break;}
+                moves.add(new int[]{nr,nc}); // stores final position
+                r = nr;
+                c = nc;
 
-                // simulate full step by step path
-                // = doesn't pass through invalid tiles
-                for (int s = 0; s < step; s++) {
-                    nr += d[0];
-                    nc += d[1];
-                    if (!isWalkable(nr, nc)) {
-                        valid = false; // reject move [invalid tile]
-                        break;
                     }
                 }
-                // skips invalid path(s)
-                if (!valid) continue;
-                moves.add(new int[]{nr, nc}); // stores final position
-            }
-        }
-        return moves;
+        return moves; // move forward one step for next iteration
     }
+
     /**
      * AI evaluation function - scores on tiles for thief
      * = higher the score --> more likely to go towards spot
@@ -888,6 +882,7 @@ public class MuseumCaperState extends GameState {
      * @param c
      * @return
      */
+
     /**
      *
      * External Cite : Chatgpt
@@ -912,20 +907,14 @@ public class MuseumCaperState extends GameState {
             int pc = pos % NUM_COLS;
 
             int dist = Math.abs(r - pr) + Math.abs(c - pc);
+            minPaintingDist = Math.min(minPaintingDist, dist);
 
-            if (dist < minPaintingDist) {
-                minPaintingDist = dist;
+            if (isPaintingAt(r, c)) {
+                score += 1000; // strong reward for landing exactly
             }
         }
-
-        // stronger attraction to paintings
-        score -= minPaintingDist * 25;
-
-        // bonus if standing on painting
-        for (int pos : paintingPositions) {
-            if (pos == r * NUM_COLS + c) {
-                score += 500;
-            }
+        if(minPaintingDist != Integer.MAX_VALUE){
+            score -= minPaintingDist * 25;
         }
         // =========================================================
         // 2. AVOID GUARDS
@@ -936,16 +925,17 @@ public class MuseumCaperState extends GameState {
 
             if (dist == 0) return -10000; // never step onto guard
 
-            score += dist * 12;
-        }
+            if (dist == 1) score -= 500;   // very dangerous
+            else if (dist == 2) score -= 200;
 
+            score += dist * 15; // prefer distance
+        }
         // =========================================================
         // 3. CAMERA AVOIDANCE
         // =========================================================
         if (cameras[r][c]) {
-            score -= 300;
+            score -= 400;
         }
-
         // penalize nearby cameras
         for (int rr = 0; rr < NUM_ROWS; rr++) {
             for (int cc = 0; cc < NUM_COLS; cc++) {
@@ -954,59 +944,53 @@ public class MuseumCaperState extends GameState {
 
                 int dist = Math.abs(r - rr) + Math.abs(c - cc);
 
-                if (dist == 1) {
-                    score -= 120; // adjacency danger
-                }
+                if (dist == 1) { score -= 120;} // adjacency danger
             }
         }
-
         // =========================================================
         // 4. EXPLORATION BONUS [prevents staying in one position]
         // =========================================================
-        score += rng.nextInt(10);
+        score += rng.nextInt(3);
 
         return score;
     }
+
     /**
      * handles what happens when thief lands on tile
      * - steal a painting
      * - cut camera
      */
     private void handleThiefLanding() {
-
-        // power room disables all cameras
-        if (thiefRow == 10 && thiefCol == 8) {
-            for (int r = 0; r < NUM_ROWS; r++) {
-                for (int c = 0; c < NUM_COLS; c++) {
-                    cameras[r][c] = false;
-                }
-            }
-        }
         // disable camera on tile
         if (cameras[thiefRow][thiefCol]) {
             cameras[thiefRow][thiefCol] = false;
         }
-        // steal paintings
+        // check painting steal
         for (int i = 0; i < paintingPositions.length; i++) {
+
             if (paintingPositions[i] == -1) continue;
 
             int pr = paintingPositions[i] / NUM_COLS;
             int pc = paintingPositions[i] % NUM_COLS;
 
             if (thiefRow == pr && thiefCol == pc) {
+
                 int paintingId = i + 1;
 
+                // safety: prevent duplicates
                 if (!stolenPaintings.contains(paintingId)) {
                     stolenPaintings.add(paintingId);
                 }
+
                 paintingPositions[i] = -1;
-                // win check
+
+                // win check (ONLY HERE)
                 if (stolenPaintings.size() >= 3) {
                     gameOver = true;
                     winnerId = 0;
                     currentPhase = GamePhase.ENDGAME;
-                    return;
                 }
+                return; // prevents double-processing same tile
             }
         }
     }
@@ -1018,11 +1002,7 @@ public class MuseumCaperState extends GameState {
      * @return
      */
     private boolean isWalkable(int r, int c) {
-        if (!inBounds(r, c)) return false;
-        char tile = gameBoard[r][c];
-        // blocked tiles
-        if (tile == 't') return false; // blocked tile [walls]
-        return true;
+        return inBounds(r, c);
     }
 
     /**
@@ -1044,13 +1024,18 @@ public class MuseumCaperState extends GameState {
         int c = c1;
         // moves step by step until reaching finishing point
         while (r != r2 || c != c2) {
-            r += dr;
-            c += dc;
+            int nextR = r + dr;
+            int nextC = c + dc;
 
-            if (!isWalkable(r, c)) return false;
+            if(!inBounds(nextR,nextC)) return false;
+            if (!isLegalMove(r, c, nextR, nextC)) return false;
+
+            r = nextR;
+            c = nextC;
         }
         return true;
     }
+
     /**
      * determines if movement between two tiles is allowed
      * it defines the connection rules between board tiles
@@ -1058,6 +1043,7 @@ public class MuseumCaperState extends GameState {
      * @param to
      * @return
      */
+
     /**
      * External Cite : Chatgpt
      * had issues with the guard + thief crossing through walls
@@ -1087,16 +1073,19 @@ public class MuseumCaperState extends GameState {
         char from = gameBoard[r1][c1];
         char to   = gameBoard[r2][c2];
 
-        // room connection rule:
-        // movement is only allowed if:
-        // - both tiles are the same room, OR
-        // - at least one tile is a hallway ('h'), OR
-        // - connection tile ('+') is involved
-        if (from != to && from != 'h' && to != 'h' && from != '+' && to != '+') {
-            return false;
-        }
-        return true;
+        // same tile is always allowed
+        if (r1 == r2 && c1 == c2) return true;
+
+        // hallway is universal connector
+        if (from == 'h' || to == 'h') return true;
+
+        // doors connect anything
+        if (from == '+' || to == '+') return true;
+
+        // otherwise must be same region type
+        return from == to;
     }
+
     /**
      * helper method for humanPlayer
      * it recorded a camera's ID + position in the game
@@ -1105,17 +1094,35 @@ public class MuseumCaperState extends GameState {
      * @param row
      * @param col
      */
-    public void placeCamera(int id, int row, int col) {
-        for (int i = 0; i < paintingPositions.length; i++) {
-            if ((row * NUM_COLS + col) = paintingPositions[i]) {
+    public boolean placeCamera(int id, int row, int col) {
 
-            }
-        }
-        cameraPlaced[id - 1] = true;
+        if (!inBounds(row, col)) return false;
+        if (gameBoard[row][col] == 't' || gameBoard[row][col] == '+') return false;
+        if (cameras[row][col]) return false;
+
+        // enforce limit
+        if (cameraCount >= 6) return false;
+
         cameras[row][col] = true;
         cameraCount++;
+
+        return true;
     }
 
+    /**
+     * helper method for checking painting logic
+     * @param r
+     * @param c
+     * @return
+     */
+    private boolean isPaintingAt(int r, int c) {
+        int pos = r * NUM_COLS + c;
+
+        for (int p : paintingPositions) {
+            if (p == pos) return true;
+        }
+        return false;
+    }
     // =====================================================================
     // GETTERS
     // =====================================================================
