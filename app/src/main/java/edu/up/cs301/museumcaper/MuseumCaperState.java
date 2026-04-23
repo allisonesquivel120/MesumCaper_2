@@ -64,6 +64,7 @@ public class MuseumCaperState extends GameState {
     private int[] guardRow;
     private int[] guardCol;
     private int[] guardRoomId;
+    private final boolean[][] doors = new boolean[NUM_ROWS][NUM_COLS]; // true = there's a door!
 
     // camera and alarm system
     private final boolean[][] cameras; // true = camera active at that tile
@@ -156,6 +157,14 @@ public class MuseumCaperState extends GameState {
                 {'t', 't', 't', 'o', '+', 'h', 'h', '+', 'v', 't', 't', 't'},
                 {'t', 't', 't', 'o', 'o', 'h', 'h', 'v', 'v', 't', 't', 't'},
         };
+
+//        for (int r = 0; r < NUM_ROWS; r++) {
+//            for (int c = 0; c < NUM_COLS; c++) {
+//                if (gameBoard[r][c] == '+') {
+//                    doorPositions[r][c] = true;
+//                }
+//            }
+//        }
 
         initRoomGrid();
 
@@ -1027,24 +1036,171 @@ public class MuseumCaperState extends GameState {
      * @return
      */
     private boolean isValidFullPath(int r1, int c1, int r2, int c2) {
-
-        int dr = Integer.compare(r2, r1); // determines row direction
-        int dc = Integer.compare(c2, c1); // determines col direction
-        // start at beginning position
-        int r = r1;
-        int c = c1;
-        // moves step by step until reaching finishing point
-        while (r != r2 || c != c2) {
-            int nextR = r + dr;
-            int nextC = c + dc;
-
-            if(!inBounds(nextR,nextC)) return false;
-            if (!isLegalMove(r, c, nextR, nextC)) return false;
-
-            r = nextR;
-            c = nextC;
+        if (!isLegalMove(r1, c1, r2, c2)) return false;
+        if (gameBoard[r1][c1] == gameBoard[r2][c2]) {
+            return true;
         }
-        return true;
+
+        int movesLeft = movementRoll;
+        int door1;
+        int door2;
+        int door3;
+        int door4;
+        int min;
+        int doorRow1;
+        int doorCol1;
+
+        if (gameBoard[r1][c1] != 'h') {
+            switch (gameBoard[r1][c1]){
+                case 'r':
+                    door1 = manhattan(r1, c1, 1, 4);
+                    door2 = manhattan(r1, c1, 1, 7);
+                    if (door1 < door2) {
+                        doorRow1 = 1;
+                        doorCol1 = 4;
+                    } else {
+                        doorRow1 = 1;
+                        doorCol1 = 7;
+                    }
+                case 'p':
+                    doorRow1 = 4;
+                    doorCol1 = 2;
+                case 'b':
+                    doorRow1 = 3;
+                    doorCol1 = 9;
+                case 'y':
+                    doorRow1 = 7;
+                    doorCol1 = 2;
+                case 'g':
+                    doorRow1 = 7;
+                    doorCol1 = 9;
+                case 'w':
+                    door1 = manhattan(r1, c1, 3, 5);
+                    door2 = manhattan(r1, c1, 3, 6);
+                    door3 = manhattan(r1, c1, 7, 5);
+                    door4 = manhattan(r1, c1, 7, 6);
+                    min = Math.min(Math.min(door1, door2), Math.min(door3, door4));
+                    if (min == door1) {
+                        doorRow1 = 3;
+                        doorCol1 = 5;
+                    } else if (min == door2) {
+                        doorRow1 = 3;
+                        doorCol1 = 6;
+                    } else if (min == door3) {
+                        doorRow1 = 7;
+                        doorCol1 = 5;
+                    } else {
+                        doorRow1 = 7;
+                        doorCol1 = 6;
+                    }
+                case 'o':
+                    doorRow1 = 9;
+                    doorCol1 = 4;
+                case 'v':
+                    doorRow1 = 9;
+                    doorCol1 = 7;
+                default:
+                    return false;
+            }
+
+            int dr = Integer.compare(r2, doorRow1); // determines row direction
+            int dc = Integer.compare(c2, doorCol1); // determines collum direction
+
+            doorRow1 += dr;
+            doorCol1 += dc;
+            movesLeft--;
+            movementRoll = movesLeft - manhattan(doorRow1, doorCol1, r2, c2);
+            if (movementRoll <= 0) return false;
+            if (!isLegalMove(doorRow1, doorCol1, r2, c2)) return false;
+            if (gameBoard[r2][c2] == 'h') {
+                return true;
+            }
+        }
+
+        int doorRow2;
+        int doorCol2;
+
+        switch (gameBoard[r2][c2]){
+            case 'r':
+                door1 = manhattan(r2, c2, 1, 4);
+                door2 = manhattan(r2, c2, 1, 7);
+                if (door1 < door2) {
+                    doorRow2 = 1;
+                    doorCol2 = 4;
+                } else {
+                    doorRow2 = 1;
+                    doorCol2 = 7;
+                }
+            case 'p':
+                doorRow2 = 4;
+                doorCol2 = 2;
+            case 'b':
+                doorRow2 = 3;
+                doorCol2 = 9;
+            case 'y':
+                doorRow2 = 7;
+                doorCol2 = 2;
+            case 'g':
+                doorRow2 = 7;
+                doorCol2 = 9;
+            case 'w':
+                door1 = manhattan(r2, c2, 3, 5);
+                door2 = manhattan(r2, c2, 3, 6);
+                door3 = manhattan(r2, c2, 7, 5);
+                door4 = manhattan(r2, c2, 7, 6);
+                min = Math.min(Math.min(door1, door2), Math.min(door3, door4));
+                if (min == door1) {
+                    doorRow2 = 3;
+                    doorCol2 = 5;
+                } else if (min == door2) {
+                    doorRow2 = 3;
+                    doorCol2 = 6;
+                } else if (min == door3) {
+                    doorRow2 = 7;
+                    doorCol2 = 5;
+                } else {
+                    doorRow2 = 7;
+                    doorCol2 = 6;
+                }
+            case 'o':
+                doorRow2 = 9;
+                doorCol2 = 4;
+            case 'v':
+                doorRow2 = 9;
+                doorCol2 = 7;
+            default:
+                return false;
+        }
+
+        movementRoll = movesLeft - manhattan(doorRow2, doorCol2, r2, c2);
+
+        if (!isLegalMove(doorRow2, doorCol2, r2, c2)) return false;
+
+        if (movementRoll <= 0) {
+            return false;
+        } else {
+            return true;
+        }
+
+
+
+//        int dr = Integer.compare(r2, r1); // determines row direction
+//        int dc = Integer.compare(c2, c1); // determines col direction
+//        // start at beginning position
+//        int r = r1;
+//        int c = c1;
+//        // moves step by step until reaching finishing point
+//        while (r != r2 || c != c2) {
+//            int nextR = r + dr;
+//            int nextC = c + dc;
+//
+//            if(!inBounds(nextR,nextC)) return false;
+//            if (!isLegalMove(r, c, nextR, nextC)) return false;
+//
+//            r = nextR;
+//            c = nextC;
+//        }
+//        return true;
     }
 
     /**
