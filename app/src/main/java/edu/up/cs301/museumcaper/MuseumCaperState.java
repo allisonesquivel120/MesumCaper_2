@@ -112,8 +112,8 @@ public class MuseumCaperState extends GameState {
         this.rng = new Random();
 
         // thief starts in the green room (bottom right)
-        this.thiefRow = 7;
-        this.thiefCol = 11;
+        //this.thiefRow = 7;
+        //this.thiefCol = 11;
 
         // FOR BETA: thief is visible so both players can see movement on the board
         // TODO: set to false for final release
@@ -158,6 +158,11 @@ public class MuseumCaperState extends GameState {
         };
 
         initRoomGrid();
+
+        // pick a random valid room tile for the thief to start in
+        int[] start = randomRoomTile();
+        this.thiefRow = start[0];
+        this.thiefCol = start[1];
 
         this.cameras = new boolean[NUM_ROWS][NUM_COLS];
         this.alarmsTriggered = new boolean[NUM_ROWS * NUM_COLS];
@@ -777,6 +782,20 @@ public class MuseumCaperState extends GameState {
         for (int r = 0; r < NUM_ROWS; r++) {
             for (int c = 0; c < NUM_COLS; c++) {
                 roomGrid[r][c] = RoomType.fromChar(gameBoard[r][c]);
+            }
+        }
+    }
+    /**
+     * Makes a safe space where the thief can appair
+     */
+    private int[] randomRoomTile() {
+        Random r = new Random();
+        while (true) {
+            int row = r.nextInt(NUM_ROWS);
+            int col = r.nextInt(NUM_COLS);
+            char tile = gameBoard[row][col];
+            if (tile != 't' && tile != '+' && tile != 'h' && tile != 'o' && tile != 'v') {
+                return new int[]{row, col};
             }
         }
     }
