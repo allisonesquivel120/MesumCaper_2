@@ -13,7 +13,7 @@ import edu.up.cs301.GameFramework.infoMessage.GameState;
  * - Detective wins: lands on the same tile as the thief
  * - Thief wins: steals at least 3 paintings
  *
- * STATE OF THE GAME
+ * PROJECT #J, STATE OF THE GAME
  * The features that we intended to implement are functional.
  *
  * The thief doesn't move toward the power room, however, that was a stretch goal.
