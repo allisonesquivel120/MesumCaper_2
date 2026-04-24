@@ -2,7 +2,6 @@ package edu.up.cs301.museumcaper;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Random;
 
 import edu.up.cs301.GameFramework.infoMessage.GameState;
@@ -324,7 +323,7 @@ public class MuseumCaperState extends GameState {
         if (currentPhase != GamePhase.SETUP) return false;
         int r = a.getRow();
         int c = a.getCol();
-        if (!inBounds(r, c)) return false;
+        if (!isValidTile(r, c)) return false;
         if (gameBoard[r][c] == 't') return false; //prevents placing in inaccessible tiles
         if (gameBoard[r][c] == '+') return false; //prevents placing in "doors"
         if (cameras[r][c]) return false; // prevents placing on cameras
@@ -348,7 +347,7 @@ public class MuseumCaperState extends GameState {
         if (currentPhase != GamePhase.SETUP) return false;
         int r = a.getRow();
         int c = a.getCol();
-        if (!inBounds(r, c)) return false;
+        if (!isValidTile(r, c)) return false;
         if (gameBoard[r][c] == 't' || gameBoard[r][c] == '+') return false;
         if (cameras[r][c]) return false; // prevent stacking cameras
         if (cameraCount >= 6) return false; // limit to 6 cameras
@@ -468,10 +467,10 @@ public class MuseumCaperState extends GameState {
         int tc = a.getTargetCol();
 
         if (guardIndex < 0 || guardIndex >= guardRow.length) return false;
-        if (!inBounds(tr, tc)) return false;
+        if (!isValidTile(tr, tc)) return false;
 
         // prevent moving to inaccessible tiles
-        if (!isWalkable(tr, tc)) return false;
+        if (!isValidTile(tr, tc)) return false;
 
         // validate move distance using manhattan distance
         int dist = manhattan(guardRow[guardIndex], guardCol[guardIndex], tr, tc);
@@ -706,7 +705,7 @@ public class MuseumCaperState extends GameState {
 
                         if (!cameras[r][c]) continue;
                         activeCount++;
-                        if (cameraSeesThief(r, c, thiefRow, thiefCol)) {
+                        if (hasLineOfSight(r, c, thiefRow, thiefCol)) {
                             thiefSeen = true;
                         }
                     }
@@ -714,43 +713,16 @@ public class MuseumCaperState extends GameState {
                 lastQuestionAnswer = activeCount + " camera(s) are active.\n" +
                         (thiefSeen ? "A camera CAN see the thief!" : "No camera can see the thief.");
                 break;
-
-
             case EYE:
                 thiefVisible = false;
+
                 for (int i = 0; i < guardRow.length; i++) {
                     int gr = guardRow[i];
                     int gc = guardCol[i];
-                    // must be same row OR same column
-                    if (gr == thiefRow || gc == thiefCol) {
-                        boolean blocked = false;
-                        // horizontal line-of-sight
-                        if (gr == thiefRow) {
-                            int start = Math.min(gc, thiefCol);
-                            int end   = Math.max(gc, thiefCol);
-                            for (int c = start + 1; c < end; c++) {
-                                if (gameBoard[gr][c] == 't') { // wall blocks view
-                                    blocked = true;
-                                    break;
-                                }
-                            }
-                        }
-                        // vertical line-of-sight
-                        if (gc == thiefCol) {
-                            int start = Math.min(gr, thiefRow);
-                            int end   = Math.max(gr, thiefRow);
-                            for (int r = start + 1; r < end; r++) {
-                                if (gameBoard[r][gc] == 't') { // wall blocks view
-                                    blocked = true;
-                                    break;
-                                }
-                            }
-                        }
-                        // if no walls in between → guard sees thief
-                        if (!blocked) {
-                            thiefVisible = true;
-                            break;
-                        }
+                    // straight line vision only (no diagonal)
+                    if (hasLineOfSight(gr, gc, thiefRow, thiefCol)) {
+                        thiefVisible = true;
+                        break;
                     }
                 }
                 lastQuestionAnswer = thiefVisible
@@ -787,9 +759,8 @@ public class MuseumCaperState extends GameState {
         return true;
     }
 
-
     /**
-     * Returns a human-readable color name for a board tile character.
+     * Returns a human readable color name for a board tile character.
      */
     private String roomColorName(char tile) {
         switch (tile) {
@@ -821,7 +792,12 @@ public class MuseumCaperState extends GameState {
         }
     }
     /**
-     * Makes a safe space where the thief can appair
+     * returns a random room tile for thief spawn
+     * - t = wall
+     * - + = door
+     * - h = hallway
+     * - o , v = special tiles
+     * all other characters represent valid rooms
      */
     private int[] randomRoomTile() {
         Random r = new Random();
@@ -834,7 +810,6 @@ public class MuseumCaperState extends GameState {
             }
         }
     }
-
     /**
      * Recomputes room IDs for the thief and all guards based on
      * their current tile positions.
@@ -860,17 +835,6 @@ public class MuseumCaperState extends GameState {
     }
 
     /**
-     * Returns true if the given row and column are within the board boundaries.
-     *
-     * @param r row index
-     * @param c column index
-     * @return true if in bounds
-     */
-    private boolean inBounds(int r, int c) {
-        return r >= 0 && r < NUM_ROWS && c >= 0 && c < NUM_COLS;
-    }
-
-    /**
      * Computes the Manhattan distance between two tiles.
      * Used to validate guard movement — diagonal movement costs 2,
      * preventing single-step diagonal moves.
@@ -887,6 +851,22 @@ public class MuseumCaperState extends GameState {
     private int manhattan(int r1, int c1, int r2, int c2) {
         return Math.abs(r1 - r2) + Math.abs(c1 - c2);
     }
+
+    /**
+     * performs a BFS search to determine if the guard can reach
+     * the target tile, within the allowed number of steps
+     * rules are enforced:
+     * - can move up to max tile number
+     * - cna move one tile at a time
+     * - must respect door rules (isLegalMove())
+     * - no diagonal movement allowed
+     * @param sr
+     * @param sc
+     * @param tr
+     * @param tc
+     * @param maxSteps
+     * @return true if valid step by step path exists
+     */
     private boolean guardCanReach(int sr, int sc, int tr, int tc, int maxSteps) {
         boolean[][] visited = new boolean[NUM_ROWS][NUM_COLS];
         ArrayList<int[]> frontier = new ArrayList<>();
@@ -906,9 +886,9 @@ public class MuseumCaperState extends GameState {
                 int nr = r + d[0];
                 int nc = c + d[1];
 
-                if (!inBounds(nr, nc)) continue;
+                if (!isValidTile(nr, nc)) continue;
                 if (visited[nr][nc]) continue;
-                if (!isWalkable(nr, nc)) continue;
+                if (!isValidTile(nr, nc)) continue;
 
                 // door rules for guard:
                 if (!isLegalMove(r, c, nr, nc)) continue;
@@ -917,34 +897,37 @@ public class MuseumCaperState extends GameState {
                 frontier.add(new int[]{nr, nc, steps + 1});
             }
         }
-
         return false;
     }
 
-
     /**
      * generates possible legal moves for thief
-     *
+     * uses BFS expansion :
+     *  - thief can move up to 3 tiles per turn
+     *  - no diagonal moves
+     *  - stops action of revisiting tiles
      * @return list of valid destination coordinates
      */
+    /**
+     * External Cite : Co-Pilot
+     * There was a problem with the thief "moving" but it actually
+     * stayed in the same coordinates again and again
+     * solution : suggested the use of BFS expansion to
+     * avoid generating "stay still moves"
+     */
     private ArrayList<int[]> getPossibleThiefMoves() {
-
         ArrayList<int[]> moves = new ArrayList<>();
 
         int[][] dirs = {
                 {-1, 0}, {1, 0}, {0, -1}, {0, 1}
         };
-
         ArrayList<int[]> frontier = new ArrayList<>();
         frontier.add(new int[]{thiefRow, thiefCol});
 
         boolean[][] visited = new boolean[NUM_ROWS][NUM_COLS];
         visited[thiefRow][thiefCol] = true;
-
         for (int step = 0; step < 3; step++) {
-
             ArrayList<int[]> next = new ArrayList<>();
-
             for (int[] node : frontier) {
 
                 int r = node[0];
@@ -955,7 +938,7 @@ public class MuseumCaperState extends GameState {
                     int nr = r + d[0];
                     int nc = c + d[1];
 
-                    if (!inBounds(nr, nc)) continue;
+                    if (!isValidTile(nr, nc)) continue;
                     if (visited[nr][nc]) continue;
 
                     // use thief validation, so it actually moves
@@ -966,22 +949,26 @@ public class MuseumCaperState extends GameState {
                     next.add(new int[]{nr, nc});
                 }
             }
-
             frontier = next;
         }
-
         return moves;
     }
 
-
     /**
-     * handles saying its the thief turn
+     * switches the game state to the thief's turn and then
+     * runs the thief AI, this is called after detective finishes
+     * rolling both dices
      */
     private void enterThiefTurn() {
         playerTurn = 0;
         currentPhase = GamePhase.THIEF_TURN;
         runThiefAI();
     }
+
+    /**
+     * ends the thief's turn and hands control back to the detective
+     * resets dice usage + transitions to guard turn start
+     */
     private void endThiefTurn() {
         playerTurn = 1; // detective
         currentPhase = GamePhase.GUARD_TURN_START;
@@ -1011,9 +998,7 @@ public class MuseumCaperState extends GameState {
 
         char tile = gameBoard[r][c];
 
-        // ---------------------------------------------------------
-        // 1. PRIORITIZE PAINTINGS
-        // ---------------------------------------------------------
+        // main setpoint is paintings
         int nearestPaintingDist = Integer.MAX_VALUE;
 
         for (int i = 0; i < paintingPositions.length; i++) {
@@ -1026,52 +1011,37 @@ public class MuseumCaperState extends GameState {
             int dist = Math.abs(pr - r) + Math.abs(pc - c);
             nearestPaintingDist = Math.min(nearestPaintingDist, dist);
         }
-
         if (nearestPaintingDist < Integer.MAX_VALUE) {
             score += 200 - nearestPaintingDist * 10;
         }
-
-        // ---------------------------------------------------------
-        // 2. PRIORITIZE TURNING OFF CAMERAS
-        // ---------------------------------------------------------
+        // goes more for turning cameras off
         if (cameras[r][c]) {
             score += 150; // stepping on a camera disables it
         }
-
-        // ---------------------------------------------------------
-        // 3. AVOID GUARDS
-        // ---------------------------------------------------------
+        // avoids guard
         for (int i = 0; i < guardRow.length; i++) {
             int dist = Math.abs(guardRow[i] - r) + Math.abs(guardCol[i] - c);
             if (dist <= 1) score -= 500; // danger zone
             else score -= (10 / dist);  // mild penalty
         }
-
-        // ---------------------------------------------------------
-        // 4. AVOID ACTIVE CAMERAS
-        // ---------------------------------------------------------
+        // avoids active cameras
         if (alarmsTriggered[r * NUM_COLS + c]) {
             score -= 300;
         }
-
-        // ---------------------------------------------------------
-        // 5. ENCOURAGE LEAVING ROOMS
-        // ---------------------------------------------------------
+        // encourages leaving room
         if (tile == 'h') score += 50; // hallways are good for travel
 
-        // ---------------------------------------------------------
-        // 6. SMALL RANDOMNESS TO AVOID GETTING STUCK
-        // ---------------------------------------------------------
+        // small randomness to avoid getting stuck
         score += rng.nextInt(5);
 
         return score;
     }
 
-
     /**
      * handles what happens when thief lands on tile
      * - steal a painting
      * - cut camera
+     * - checks thief's win conditions
      */
     private void handleThiefLanding() {
         // disable camera on tile
@@ -1107,41 +1077,41 @@ public class MuseumCaperState extends GameState {
             }
         }
     }
-
     /**
-     * checks if specific tile can be moved to
-     * @param r
-     * @param c
-     * @return
+     * Returns true if the tile is inside the board AND not a wall.
+     * This is the universal "can step here" check for guards and thief.
      */
-    private boolean isWalkable(int r, int c) {
-        if (!inBounds(r, c)) return false;
-
-        if (gameBoard[r][c] == 't') return false;
-
+    private boolean isValidTile(int r, int c) {
+        if (r < 0 || r >= NUM_ROWS || c < 0 || c >= NUM_COLS) return false;
+        if (gameBoard[r][c] == 't') return false; // wall
         return true;
     }
-    private boolean cameraSeesThief(int cr, int cc, int tr, int tc) {
+
+    /**
+     * Returns true if there is straight-line (orthogonal) vision
+     * between (r1,c1) and (r2,c2) with no walls in between.
+     */
+    private boolean hasLineOfSight(int r1, int c1, int r2, int c2) {
 
         // must be same row or same column
-        if (cr != tr && cc != tc) return false;
+        if (r1 != r2 && c1 != c2) return false;
 
         // horizontal scan
-        if (cr == tr) {
-            int start = Math.min(cc, tc);
-            int end   = Math.max(cc, tc);
+        if (r1 == r2) {
+            int start = Math.min(c1, c2);
+            int end   = Math.max(c1, c2);
             for (int c = start + 1; c < end; c++) {
-                if (gameBoard[cr][c] == 't') return false; // wall blocks view
+                if (gameBoard[r1][c] == 't') return false; // wall blocks view
             }
             return true;
         }
 
         // vertical scan
-        if (cc == tc) {
-            int start = Math.min(cr, tr);
-            int end   = Math.max(cr, tr);
+        if (c1 == c2) {
+            int start = Math.min(r1, r2);
+            int end   = Math.max(r1, r2);
             for (int r = start + 1; r < end; r++) {
-                if (gameBoard[r][cc] == 't') return false; // wall blocks view
+                if (gameBoard[r][c1] == 't') return false; // wall blocks view
             }
             return true;
         }
@@ -1149,179 +1119,6 @@ public class MuseumCaperState extends GameState {
         return false;
     }
 
-
-    /**
-     * checks if the entire path [starting point - finish point]
-     * is valid = "walkable"
-     * does NOT use game rules
-     * @param r1
-     * @param c1
-     * @param r2
-     * @param c2
-     * @return
-     */
-    private boolean isValidFullPath(int r1, int c1, int r2, int c2) {
-        if (!isLegalMove(r1, c1, r2, c2)) return false;
-        if (gameBoard[r1][c1] == gameBoard[r2][c2]) {
-            return true;
-        }
-
-        int movesLeft = movementRoll;
-        int door1;
-        int door2;
-        int door3;
-        int door4;
-        int min;
-        int doorRow1 = -1;
-        int doorCol1 = -1;
-
-        if (gameBoard[r1][c1] != 'h') {
-            switch (gameBoard[r1][c1]){
-                case 'r':
-                    door1 = manhattan(r1, c1, 1, 4);
-                    door2 = manhattan(r1, c1, 1, 7);
-                    if (door1 < door2) {
-                        doorRow1 = 1;
-                        doorCol1 = 4;
-                    } else {
-                        doorRow1 = 1;
-                        doorCol1 = 7;
-                    }
-                    break;
-                case 'p':
-                    doorRow1 = 4;
-                    doorCol1 = 2;
-                    break;
-                case 'b':
-                    doorRow1 = 3;
-                    doorCol1 = 9;
-                    break;
-                case 'y':
-                    doorRow1 = 7;
-                    doorCol1 = 2;
-                    break;
-                case 'g':
-                    doorRow1 = 7;
-                    doorCol1 = 9;
-                    break;
-                case 'w':
-                    door1 = manhattan(r1, c1, 3, 5);
-                    door2 = manhattan(r1, c1, 3, 6);
-                    door3 = manhattan(r1, c1, 7, 5);
-                    door4 = manhattan(r1, c1, 7, 6);
-                    min = Math.min(Math.min(door1, door2), Math.min(door3, door4));
-                    if (min == door1) {
-                        doorRow1 = 3;
-                        doorCol1 = 5;
-                    } else if (min == door2) {
-                        doorRow1 = 3;
-                        doorCol1 = 6;
-                    } else if (min == door3) {
-                        doorRow1 = 7;
-                        doorCol1 = 5;
-                    } else {
-                        doorRow1 = 7;
-                        doorCol1 = 6;
-                    }
-                case 'o':
-                    doorRow1 = 9;
-                    doorCol1 = 4;
-                    break;
-                case 'v':
-                    doorRow1 = 9;
-                    doorCol1 = 7;
-                    break;
-                default:
-                    return false;
-            }
-
-            int dr = Integer.compare(r2, doorRow1); // determines row direction
-            int dc = Integer.compare(c2, doorCol1); // determines collum direction
-
-            doorRow1 += dr;
-            doorCol1 += dc;
-            movesLeft--;
-            movementRoll = movesLeft - manhattan(doorRow1, doorCol1, r2, c2);
-            if (movementRoll <= 0) return false;
-            if (!isLegalMove(doorRow1, doorCol1, r2, c2)) return false;
-            if (gameBoard[r2][c2] == 'h') {
-                return true;
-            }
-        }
-
-        int doorRow2 = -1;
-        int doorCol2 = -1;
-
-        switch (gameBoard[r2][c2]){
-            case 'r':
-                door1 = manhattan(r2, c2, 1, 4);
-                door2 = manhattan(r2, c2, 1, 7);
-                if (door1 < door2) {
-                    doorRow2 = 1;
-                    doorCol2 = 4;
-                } else {
-                    doorRow2 = 1;
-                    doorCol2 = 7;
-                }
-                break;
-            case 'p':
-                doorRow2 = 4;
-                doorCol2 = 2;
-                break;
-            case 'b':
-                doorRow2 = 3;
-                doorCol2 = 9;
-                break;
-            case 'y':
-                doorRow2 = 7;
-                doorCol2 = 2;
-                break;
-            case 'g':
-                doorRow2 = 7;
-                doorCol2 = 9;
-                break;
-            case 'w':
-                door1 = manhattan(r2, c2, 3, 5);
-                door2 = manhattan(r2, c2, 3, 6);
-                door3 = manhattan(r2, c2, 7, 5);
-                door4 = manhattan(r2, c2, 7, 6);
-                min = Math.min(Math.min(door1, door2), Math.min(door3, door4));
-                if (min == door1) {
-                    doorRow2 = 3;
-                    doorCol2 = 5;
-                } else if (min == door2) {
-                    doorRow2 = 3;
-                    doorCol2 = 6;
-                } else if (min == door3) {
-                    doorRow2 = 7;
-                    doorCol2 = 5;
-                } else {
-                    doorRow2 = 7;
-                    doorCol2 = 6;
-                }
-                break;
-            case 'o':
-                doorRow2 = 9;
-                doorCol2 = 4;
-                break;
-            case 'v':
-                doorRow2 = 9;
-                doorCol2 = 7;
-                break;
-
-            case 'h':
-                // hallway → hallway is always legal
-                return true;
-            default:
-                return false;
-        }
-
-        movementRoll = movesLeft - manhattan(doorRow2, doorCol2, r2, c2);
-
-        if (!isLegalMove(doorRow2, doorCol2, r2, c2)) return false;
-
-        return movementRoll > 0;
-    }//isValidFullPath
     /**
      * Thief-specific movement validator.
      * Does NOT use movementRoll.
@@ -1330,7 +1127,7 @@ public class MuseumCaperState extends GameState {
      */
     private boolean isValidThiefMove(int r1, int c1, int r2, int c2) {
 
-        if (!isWalkable(r2, c2)) return false;
+        if (!isValidTile(r2, c2)) return false;
 
         char start = gameBoard[r1][c1];
         char end   = gameBoard[r2][c2];
@@ -1346,51 +1143,28 @@ public class MuseumCaperState extends GameState {
 
         if (r1 == r2 && c1 == c2) return false;
 
-        // ROOM → ROOM (same room)
+        // room → room (same room)
         if (startRoom && endRoom && start == end) return true;
 
-        // ROOM → DOOR
+        // room → door
         if (startRoom && endDoor) {
             return isDoorForRoom(r2, c2, start);
         }
 
-        // DOOR → HALLWAY
+        // door → hallway
         if (startDoor && endHall) return true;
 
-        // HALLWAY → DOOR
+        // hallway → door
         if (startHall && endDoor) return true;
 
-        // DOOR → ROOM
+        // door → room
         if (startDoor && endRoom) {
             return isDoorForRoom(r1, c1, end);
         }
-
-        // HALLWAY ↔ HALLWAY
+        // hallway to hallway
         if (startHall && endHall) return true;
 
         return false;
-    }
-
-
-    /**
-     * determines if movement between two tiles is allowed
-     * it defines the connection rules between board tiles
-     * @param from
-     * @param to
-     * @return
-     */
-
-    /**
-     * External Cite : Chatgpt
-     * had issues with the guard + thief crossing through walls
-     * solution : suggested a helper method to identify relationship
-     * between tiles = more restriction
-     */
-    private boolean canMove(char from, char to) {
-        if (from == to) return true;  // same tile type = allowed
-        if (from == 'h' || to == 'h') return true; // hallway = universal connector
-        if (from == '+' || to == '+') return true; // doors
-        return false; // everything else blocked (prevents room-to-room teleporting)
     }
 
     /**
@@ -1403,7 +1177,7 @@ public class MuseumCaperState extends GameState {
      */
     private boolean isLegalMove(int r1, int c1, int r2, int c2) {
 
-        if (!isWalkable(r2, c2)) return false;
+        if (!isValidTile(r2, c2)) return false;
 
         char start = gameBoard[r1][c1];
         char end   = gameBoard[r2][c2];
@@ -1433,7 +1207,8 @@ public class MuseumCaperState extends GameState {
     }
 
     /**
-     * Returns true if (r,c) is a valid door tile for the given room type.
+     * returns true if row and col is a valid
+     * door tile for the given room type
      */
     private boolean isDoorForRoom(int r, int c, char room) {
         switch (room) {
@@ -1449,7 +1224,6 @@ public class MuseumCaperState extends GameState {
         }
     }
 
-
     /**
      * helper method for humanPlayer
      * it recorded a camera's ID + position in the game
@@ -1460,7 +1234,7 @@ public class MuseumCaperState extends GameState {
      */
     public boolean placeCamera(int id, int row, int col) {
 
-        if (!inBounds(row, col)) return false;
+        if (!isValidTile(row, col)) return false;
         if (gameBoard[row][col] == 't' || gameBoard[row][col] == '+') return false;
         if (cameras[row][col]) return false;
 
@@ -1512,6 +1286,7 @@ public class MuseumCaperState extends GameState {
         return copy;
     }
     public boolean[] getAlarmTriggered() { return alarmsTriggered.clone(); }
+    public int getCameraCount() { return cameraCount; }
     public int getMovementRoll() { return movementRoll; }
     public int getDiceValue() { return movementRoll; }
     public int getQuestionRoll() { return questionRoll; }

@@ -96,22 +96,21 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
 
         // movement die
         if (movementDieButton != null) {
+            boolean used = state.isMovementDieUsed();
             int roll = state.getMovementRoll();
             movementDieButton.setImageResource(getMovementDieDrawable(roll));
 
-            boolean canRoll = isGuardTurnStart && !movementDieUsed;
-            movementDieButton.setEnabled(canRoll);
-            movementDieButton.setAlpha(canRoll ? 1.0f : 0.4f);
+            movementDieButton.setEnabled(!used);
+            movementDieButton.setAlpha(used ? 0.4f : 1.0f);
         }
-
         // camera die
         if (cameraDieButton != null) {
+            boolean used = state.isQuestionDieUsed();
             int roll = state.getQuestionRoll();
             cameraDieButton.setImageResource(getCameraDieDrawable(roll));
 
-            boolean canRoll = isGuardTurnStart && !cameraDieUsed;
-            cameraDieButton.setEnabled(canRoll);
-            cameraDieButton.setAlpha(canRoll ? 1.0f : 0.4f);
+            cameraDieButton.setEnabled(!used);
+            cameraDieButton.setAlpha(used ? 0.4f : 1.0f);
         }
         // show done setup button only during SETUP phase
         Button doneSetupButton = myActivity.findViewById(R.id.doneSetupButton);
@@ -161,8 +160,11 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
             if (v == null) continue;
 
             boolean inSetup = state.getCurrentPhase() == GamePhase.SETUP;
+            // camera i is placed if i < cameraCount
+            boolean placed = (i < state.getCameraCount());
+            cameraUsed[i] = placed;
 
-            if (cameraUsed[i]) {
+            if (placed) {
                 v.setAlpha(0.3f); // locked [gray] - already placed
                 v.setEnabled(false);
             } else {
@@ -236,10 +238,14 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         if (button.getId() == R.id.regulardie) {
             if (movementDieUsed) return;
             movementDieUsed = true;
+            movementDieButton.setAlpha(0.4f);
+            movementDieButton.setEnabled(false);
             game.sendAction(new MuseumCaperRollDiceAction(this, DiceType.MOVEMENT));
         } else if (button.getId() == R.id.cameradie) {
             if (cameraDieUsed) return;
             cameraDieUsed = true;
+            cameraDieButton.setAlpha(0.4f);
+            cameraDieButton.setEnabled(false);
             game.sendAction(new MuseumCaperRollDiceAction(this, DiceType.QUESTION));
         }
     }// onClick
@@ -464,7 +470,6 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
                         game.sendAction(new MuseumCaperPlaceCameraAction(
                             MuseumCaperHumanPlayer.this, selectedCameraId, row, col));
 
-                        cameraUsed[selectedCameraId - 1] = true;
                         camerasPlaced++;
                 }
                     // reset selection immediately (UI state only)
