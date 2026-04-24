@@ -31,6 +31,20 @@ public class MuseumCaperLocalGame extends LocalGame {
         super.state = state;
     }
 
+    @Override
+    public void start(GamePlayer[] players) {
+        super.start(players);
+        // find the thief player and set the AI type on the real game state
+        for (GamePlayer p : players) {
+            if (p instanceof MuseumCaperComputerPlayer1) {
+                gameState.setAIType(
+                        ((MuseumCaperComputerPlayer1) p).getAIType()
+                );
+                break;
+            }
+        }
+    }
+
     /**
      * Determines whether a given player is allowed to act right now.
      * During SETUP, any player can place pieces.

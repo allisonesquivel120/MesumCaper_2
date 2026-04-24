@@ -38,6 +38,11 @@ public class MuseumCaperComputerPlayer1 extends GameComputerPlayer implements Ti
         this.guardIndex = 0;
     }
 
+    public MuseumCaperState.AIType getAIType() {
+        return MuseumCaperState.AIType.SMART;
+    }
+
+
     /**
      * Receives a game state update and decides what action to take.
      * Since this AI is currently assigned as the thief (player 0),
