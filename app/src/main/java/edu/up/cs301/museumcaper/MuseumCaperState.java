@@ -1121,8 +1121,24 @@ public class MuseumCaperState extends GameState {
         if (r1 == r2) {
             int start = Math.min(c1, c2);
             int end   = Math.max(c1, c2);
+
+            boolean isDoor = false;
+
             for (int c = start + 1; c < end; c++) {
-                if (gameBoard[r1][c] == 't') return false; // wall blocks view
+                // cameras never pass through more than one room
+                // thus, the line of sight must match the starting room, ending room, or a door
+                if (gameBoard[r1][c] == gameBoard[r1][start] || gameBoard[r1][c] == gameBoard[r1][end] || gameBoard[r1][c] == '+') {
+                } else {
+                    return false;
+                }
+                if (gameBoard[r1][c] == '+') {
+                    isDoor = true;
+                }
+            }
+
+            // if the starting and ending rooms are different, a door must be present
+            if (gameBoard[r1][start] != gameBoard[r1][end]) {
+                return isDoor;
             }
             return true;
         }
@@ -1131,12 +1147,26 @@ public class MuseumCaperState extends GameState {
         if (c1 == c2) {
             int start = Math.min(r1, r2);
             int end   = Math.max(r1, r2);
+
+            boolean isDoor = false;
+
+            // cameras never pass through more than one room, doors are okay
             for (int r = start + 1; r < end; r++) {
-                if (gameBoard[r][c1] == 't') return false; // wall blocks view
+                if (gameBoard[r][c1] == gameBoard[start][c1] || gameBoard[r][c1] == gameBoard[end][c1] || gameBoard[r][c1] == '+') {
+                } else {
+                    return false;
+                }
+                if (gameBoard[r][c1] == '+') {
+                    isDoor = true;
+                }
+            }
+
+            // if the starting and ending rooms aren't the same, a door must be present
+            if (gameBoard[start][c1] != gameBoard[end][c1]) {
+                return isDoor;
             }
             return true;
         }
-
         return false;
     }
 
