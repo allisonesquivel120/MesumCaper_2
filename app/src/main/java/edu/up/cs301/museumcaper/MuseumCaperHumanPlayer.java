@@ -90,7 +90,7 @@ public class MuseumCaperHumanPlayer extends GameHumanPlayer implements OnClickLi
         // update turn indicator text
         if (playerTurnTextView != null) {
             int turn = state.getPlayerTurn();
-            playerTurnTextView.setText(turn == 0 ? "Thief's Turn" : this.name + "'s Turn");
+            playerTurnTextView.setText(turn == 0 ? "Thief's Turn" : "You are " + this.name);
         }
         boolean isGuardTurnStart = state.getCurrentPhase() == GamePhase.GUARD_TURN_START;
 

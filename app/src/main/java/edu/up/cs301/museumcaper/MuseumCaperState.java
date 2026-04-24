@@ -13,8 +13,39 @@ import edu.up.cs301.GameFramework.infoMessage.GameState;
  * - Detective wins: lands on the same tile as the thief
  * - Thief wins: steals at least 3 paintings
  *
+ * STATE OF THE GAME
+ * The features that we intended to implement are functional.
+ *
+ * The thief doesn't move toward the power room, however, that was a stretch goal.
+ *
+ * If the thief lands on the power space, the code is present.
+ *
+ * The dice can be rolled in any sequence, like the original game.
+ *
+ * The cameras and paintings are functional. They cannot be stacked or placed in doorways.
+ * After cameras/paintings are removed from the board, they return to their original positions.
+ *
+ * The borders are functional. The detective and thief must navigate through doors.
+ *
+ * The camera's and detective's line of sight are appropriately restricted.
+ * They cannot see through walls, however, doorways and hallways are acceptable.
+ *
+ * Objects are placed on the board by selecting the desired position on the grid.
+ * The detective moves the same way.
+ *
+ * Players can control how many paintings/cameras enter the board.
+ * This allows them to adjust the difficulty of the game.
+ * If they'd like ot practice, they can choose to place no paintings.
+ * Then they select done setting up and begin playing.
+ *
+ * We chose not to implement locks. This is reflected in our presentations.
+ * If the thief steal three paintings, the AI wins.
+ * If the detective catches the thief, they win.
+ *
+ * The rules provide helpful information to players.
+ *
  * @author Farid S.
- * @author Jayden H.
+ * @author Jadyn H.
  * @author Allison E.
  *
  * @version March 2026
@@ -1011,54 +1042,7 @@ public class MuseumCaperState extends GameState {
      * move towards paintings + cameras
      * solution : suggested using a point system --> like a game
      * for AI
-    private int evaluatePositionSmart(int r, int c) {
-        int score = 0;
-
-        char tile = gameBoard[r][c];
-
-        // main setpoint is paintings
-        int nearestPaintingDist = Integer.MAX_VALUE;
-
-        for (int i = 0; i < paintingPositions.length; i++) {
-            if (paintingPositions[i] == -1) continue; // not placed
-            if (stolenPaintings.contains(i)) continue; // already stolen
-
-            int pr = paintingPositions[i] / NUM_COLS;
-            int pc = paintingPositions[i] % NUM_COLS;
-
-            int dist = Math.abs(pr - r) + Math.abs(pc - c);
-            nearestPaintingDist = Math.min(nearestPaintingDist, dist);
-        }
-        if (nearestPaintingDist < Integer.MAX_VALUE) {
-            score += 200 - nearestPaintingDist * 10;
-        }
-        // goes more for turning cameras off
-        if (cameras[r][c]) {
-            score += 150; // stepping on a camera disables it
-        }
-        // avoids guard
-        for (int i = 0; i < guardRow.length; i++) {
-            int dist = Math.abs(guardRow[i] - r) + Math.abs(guardCol[i] - c);
-            if (dist <= 1) score -= 500; // danger zone
-            else score -= (10 / dist);  // mild penalty
-        }
-        // avoids active cameras
-        if (alarmsTriggered[r * NUM_COLS + c]) {
-            score -= 300;
-        }
-        // encourages leaving room
-        if (tile == 'h') score += 50; // hallways are good for travel
-
-        // small randomness to avoid getting stuck
-        score += rng.nextInt(5);
-
-        return score;
-    }
-    */
-
-
-
-    /**
+     *
      * handles what happens when thief lands on tile
      * - steal a painting
      * - cut camera
@@ -1098,6 +1082,7 @@ public class MuseumCaperState extends GameState {
             }
         }
     }
+
     /**
      * Returns true if the tile is inside the board AND not a wall.
      * This is the universal "can step here" check for guards and thief.
