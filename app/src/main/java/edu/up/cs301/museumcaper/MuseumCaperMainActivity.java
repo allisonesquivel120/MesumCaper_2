@@ -35,23 +35,29 @@ public class MuseumCaperMainActivity extends GameMainActivity {
     public GameConfig createDefaultConfig() {
         ArrayList<GamePlayerType> playerTypes = new ArrayList<>();
 
-        // player 0 = thief (AI) — movement handled automatically by MuseumCaperComputerPlayer1
-        playerTypes.add(new GamePlayerType("Thief (AI)") {
+        // index 0 = Smart AI
+        playerTypes.add(new GamePlayerType("Thief - Smart AI") {
             public GamePlayer createPlayer(String name) {
                 return new MuseumCaperComputerPlayer1(name, 0);
             }});
 
-        // player 1 = detective (human) — uses the GUI to roll dice and move
+        // index 1 = Human detective
         playerTypes.add(new GamePlayerType("Detective (Human)") {
             public GamePlayer createPlayer(String name) {
                 return new MuseumCaperHumanPlayer(name, 1);
             }});
 
+        // index 2 = Dumb AI
+        playerTypes.add(new GamePlayerType("Thief - Dumb AI") {
+            public GamePlayer createPlayer(String name) {
+                return new MuseumCaperComputerPlayer2(name, 0);
+            }});
+
         GameConfig defaultConfig = new GameConfig(playerTypes, 2, 4, "Museum Caper", PORT_NUMBER);
-        defaultConfig.addPlayer("Thief", 0);      // AI thief
-        defaultConfig.addPlayer("Detective 1", 1);  // human detective
-        defaultConfig.addPlayer("Detective 2" , 1); // human detective
-        defaultConfig.addPlayer("Detective 3", 1); // human detective
+        defaultConfig.addPlayer("Thief", 0);
+        defaultConfig.addPlayer("Detective 1", 1);
+        defaultConfig.addPlayer("Detective 2", 1);
+        defaultConfig.addPlayer("Detective 3", 1);
         defaultConfig.setRemoteData("Remote Player", "", 1);
         return defaultConfig;
     }
