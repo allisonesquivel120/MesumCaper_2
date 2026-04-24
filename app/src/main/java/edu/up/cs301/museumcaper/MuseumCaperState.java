@@ -137,11 +137,13 @@ public class MuseumCaperState extends GameState {
         // 'p' = purple room
         // 'h' = hallway
         // 'g' = green room
-        // 'd' = door/entrance
+        // '+' = door/entrance
         // 'r' = red room
         // 'b' = blue room
         // 'w' = white room
         // 'y' = yellow room
+        // 'o' = gray room
+        // 'v' = power room
         this.gameBoard = new char[][]{
                 {'t', 't', 't', 'r', 'r', 'r', 'r', 'r', 'r', 't', 't', 't'},
                 {'t', 't', 't', 'r', '+', 'r', 'r', '+', 'r', 't', 't', 't'},
@@ -155,23 +157,25 @@ public class MuseumCaperState extends GameState {
                 {'t', 't', 't', 'o', '+', 'h', 'h', '+', 'v', 't', 't', 't'},
                 {'t', 't', 't', 'o', 'o', 'h', 'h', 'v', 'v', 't', 't', 't'},
         };
-
+        // initialize room grid
         initRoomGrid();
 
-        // pick a random valid room tile for the thief to start in
+        // Ai thief starts in a random valid room
         int[] start = randomRoomTile();
         this.thiefRow = start[0];
         this.thiefCol = start[1];
 
+        // camera system
         this.cameras = new boolean[NUM_ROWS][NUM_COLS];
         this.alarmsTriggered = new boolean[NUM_ROWS * NUM_COLS];
-
         this.movementRoll = 0;
         this.questionRoll = 0;
 
+        // game status
         this.gameOver = false;
         this.winnerId = -1;
 
+        // AI thief
         guardRoomId = new int[numGuard];
         updateRoomIds();
     } // Constructor
@@ -620,50 +624,63 @@ public class MuseumCaperState extends GameState {
      * - updates thief position
      */
     void runSmartThiefAI() {
-        // get all possible movement destinations
+
+        // ── decide mode ──────────────────────────────────────────────
+        boolean inDanger = thiefVisible || isGuardNearby(4);
+        boolean hasPaintings = hasRemainingPaintings();
+
+        int[] target;
+
+        if (inDanger) {
+            // FLEE — head to nearest exit
+            target = bfsNearestExit();
+        } else if (hasPaintings) {
+            // STEAL — head to nearest painting
+            target = bfsNearestPainting();
+        } else {
+            // WANDER — move away from guards
+            target = null;
+        }
+
+        // ── get all reachable tiles (up to 3 steps) ──────────────────
         ArrayList<int[]> moves = getPossibleThiefMoves();
+        if (moves.isEmpty()) return;
 
-        ArrayList<int[]> validMoves = new ArrayList<>();
-
+        // ── score each candidate move ─────────────────────────────────
         int bestScore = Integer.MIN_VALUE;
-        // evaluates every move --> keeps best ones
+        ArrayList<int[]> bestMoves = new ArrayList<>();
+
         for (int[] move : moves) {
             int r = move[0];
             int c = move[1];
-            // forces the thief to move one tile at a time,
-            // step onto the door tile, step into the hallway
-            // , and reach paintings
-            if (manhattan(thiefRow, thiefCol, r, c) != 1) continue;
-            if (!isValidThiefMove(thiefRow, thiefCol, r, c)) continue;
-            int score = evaluatePositionSmart(r, c);
-            // tracks best score moves
+
+            if (!isReachableByThief(thiefRow, thiefCol, r, c, 3)) continue;
+
+            int score = scoreSmartMove(r, c, target, inDanger);
+
             if (score > bestScore) {
                 bestScore = score;
-                validMoves.clear();
-                validMoves.add(move);
+                bestMoves.clear();
+                bestMoves.add(move);
             } else if (score == bestScore) {
-                validMoves.add(move);
+                bestMoves.add(move);
             }
         }
-        System.out.println("Raw moves: " + moves.size());
-        // no valid moves found --> stays in same spot
-        // this shouldn't happen often
-        if (validMoves.isEmpty()) {
 
-            // fallback: try ANY legal move (don’t switch AI systems)
+        if (bestMoves.isEmpty()) {
+            // fallback: any legal move
             for (int[] m : moves) {
-                if (isValidThiefMove(thiefRow, thiefCol, m[0], m[1])) {
-                    validMoves.add(m);
-                    break;
+                if (isReachableByThief(thiefRow, thiefCol, m[0], m[1], 3)) {
+                    thiefRow = m[0];
+                    thiefCol = m[1];
+                    return;
                 }
             }
-            // if still nothing, just don't move this turn
-            if (validMoves.isEmpty()) return;
+            return;
         }
-        // tie braker - picks randomly to avoid the predictable ai behavior
-        int[] chosen = validMoves.get(rng.nextInt(validMoves.size()));
 
-        // applies moves
+        // tie-break randomly to avoid predictable behavior
+        int[] chosen = bestMoves.get(rng.nextInt(bestMoves.size()));
         thiefRow = chosen[0];
         thiefCol = chosen[1];
     }
@@ -744,9 +761,10 @@ public class MuseumCaperState extends GameState {
      */
     public boolean makeFinishRevealAction(MuseumCaperFinishRevealAction a) {
         if (currentPhase != GamePhase.DETECTIVE_REVEAL) return false;
-        android.util.Log.d("TURN_DEBUG", "movementDieUsed=" + movementDieUsed + " questionDieUsed=" + questionDieUsed);
+        //android.util.Log.d("TURN_DEBUG", "movementDieUsed=" + movementDieUsed + " questionDieUsed=" + questionDieUsed);
 
-        questionDieUsed = true;  // mark question action as completed
+        // both dice done then thief moves
+        questionDieUsed = true;
         // if both dice have been used  =  thief turn
         if (movementDieUsed) {
             movementRoll = 0;
@@ -761,6 +779,7 @@ public class MuseumCaperState extends GameState {
 
     /**
      * Returns a human readable color name for a board tile character.
+     * Used in question answer strings shown to the detective.
      */
     private String roomColorName(char tile) {
         switch (tile) {
@@ -770,7 +789,8 @@ public class MuseumCaperState extends GameState {
             case 'y': return "Yellow";
             case 'g': return "Green";
             case 'w': return "White";
-            case 'd': return "Door";
+            case 'o': return "Dark Gray";
+            case 'v': return "Power";
             default:  return "Unknown";
         }
     }
@@ -792,12 +812,12 @@ public class MuseumCaperState extends GameState {
         }
     }
     /**
-     * returns a random room tile for thief spawn
-     * - t = wall
-     * - + = door
-     * - h = hallway
-     * - o , v = special tiles
-     * all other characters represent valid rooms
+     * Picks a random valid tile inside a colored room for the thief to spawn on.
+     * We exclude walls (t), doors (+), hallways (h), and the special rooms
+     * (o, v) so the thief always starts somewhere sensible
+     *
+     * We loop until we find a valid tile, this is fine because most of
+     * the board is valid room tiles.
      */
     private int[] randomRoomTile() {
         Random r = new Random();
@@ -853,19 +873,18 @@ public class MuseumCaperState extends GameState {
     }
 
     /**
-     * performs a BFS search to determine if the guard can reach
-     * the target tile, within the allowed number of steps
-     * rules are enforced:
-     * - can move up to max tile number
-     * - cna move one tile at a time
-     * - must respect door rules (isLegalMove())
-     * - no diagonal movement allowed
-     * @param sr
-     * @param sc
-     * @param tr
-     * @param tc
-     * @param maxSteps
-     * @return true if valid step by step path exists
+     * BFS check to see if the guard can legally reach a target tile
+     * within their allowed number of steps.
+     *
+     * We use BFS (breadth-first search) instead of just Manhattan distance
+     * because Manhattan distance ignores walls and doors. BFS actually
+     * walks the path step by step and checks each move is legal.
+     * @param sr       guard start row
+     * @param sc       guard start col
+     * @param tr       target row
+     * @param tc       target col
+     * @param maxSteps maximum steps allowed (from the dice roll)
+     * @return true if a valid path exists within maxSteps
      */
     private boolean guardCanReach(int sr, int sc, int tr, int tc, int maxSteps) {
         boolean[][] visited = new boolean[NUM_ROWS][NUM_COLS];
@@ -992,7 +1011,6 @@ public class MuseumCaperState extends GameState {
      * move towards paintings + cameras
      * solution : suggested using a point system --> like a game
      * for AI
-     */
     private int evaluatePositionSmart(int r, int c) {
         int score = 0;
 
@@ -1036,6 +1054,9 @@ public class MuseumCaperState extends GameState {
 
         return score;
     }
+    */
+
+
 
     /**
      * handles what happens when thief lands on tile
@@ -1258,6 +1279,169 @@ public class MuseumCaperState extends GameState {
 
         for (int p : paintingPositions) {
             if (p == pos) return true;
+        }
+        return false;
+    }
+
+    private int scoreSmartMove(int r, int c, int[] target, boolean fleeing) {
+        int score = 0;
+
+        if (target != null) {
+            int distToTarget = manhattan(r, c, target[0], target[1]);
+            score -= distToTarget * (fleeing ? 40 : 35);
+        }
+
+        if (isPaintingAt(r, c)) {
+            score += 1000;
+        }
+        // bonus for being in hallway when heading to a painting in another room
+        if (gameBoard[r][c] == 'h' && !fleeing) score += 60;
+
+        for (int i = 0; i < guardRow.length; i++) {
+            int dist = manhattan(r, c, guardRow[i], guardCol[i]);
+            if (dist == 0) return -100000;
+            if (dist == 1) score -= 800;
+            else if (dist == 2) score -= 300;
+            else if (dist == 3) score -= 100;
+            else score += dist * 10;
+        }
+
+        if (cameras[r][c]) {
+            if (fleeing) score += 200;
+            else score -= 400;
+        }
+
+        int[][] dirs = {{-1,0},{1,0},{0,-1},{0,1}};
+        for (int[] d : dirs) {
+            int nr = r + d[0];
+            int nc = c + d[1];
+            if (isValidTile(nr, nc) && cameras[nr][nc]) {
+                score -= 100;
+            }
+        }
+
+        if (gameBoard[r][c] == 'h' && fleeing) score += 80;
+
+        if (!fleeing && target == null) {
+            int minGuardDist = Integer.MAX_VALUE;
+            for (int i = 0; i < guardRow.length; i++) {
+                minGuardDist = Math.min(minGuardDist,
+                        manhattan(r, c, guardRow[i], guardCol[i]));
+            }
+            score += minGuardDist * 15;
+        }
+
+        score += rng.nextInt(5);
+        return score;
+    }
+
+    private boolean isGuardNearby(int manhattanDist) {
+        for (int i = 0; i < guardRow.length; i++) {
+            if (manhattan(thiefRow, thiefCol, guardRow[i], guardCol[i]) <= manhattanDist) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasRemainingPaintings() {
+        for (int pos : paintingPositions) {
+            if (pos != -1) return true;
+        }
+        return false;
+    }
+
+    private int[] bfsNearestPainting() {
+        boolean[][] visited = new boolean[NUM_ROWS][NUM_COLS];
+        ArrayList<int[]> queue = new ArrayList<>();
+        queue.add(new int[]{thiefRow, thiefCol});
+        visited[thiefRow][thiefCol] = true;
+
+        int[][] dirs = {{-1,0},{1,0},{0,-1},{0,1}};
+
+        while (!queue.isEmpty()) {
+            int[] cur = queue.remove(0);
+            int r = cur[0], c = cur[1];
+
+            if (isPaintingAt(r, c)) return new int[]{r, c};
+
+            for (int[] d : dirs) {
+                int nr = r + d[0];
+                int nc = c + d[1];
+                if (!isValidTile(nr, nc)) continue;
+                if (visited[nr][nc]) continue;
+                if (!isValidThiefMove(r, c, nr, nc)) continue;
+                visited[nr][nc] = true;
+                queue.add(new int[]{nr, nc});
+            }
+        }
+        return null;
+    }
+
+    private int[] bfsNearestExit() {
+        boolean[][] visited = new boolean[NUM_ROWS][NUM_COLS];
+        ArrayList<int[]> queue = new ArrayList<>();
+        queue.add(new int[]{thiefRow, thiefCol});
+        visited[thiefRow][thiefCol] = true;
+
+        int[][] dirs = {{-1,0},{1,0},{0,-1},{0,1}};
+
+        while (!queue.isEmpty()) {
+            int[] cur = queue.remove(0);
+            int r = cur[0], c = cur[1];
+
+            if (isExitTile(r, c)) return new int[]{r, c};
+
+            for (int[] d : dirs) {
+                int nr = r + d[0];
+                int nc = c + d[1];
+                if (!isValidTile(nr, nc)) continue;
+                if (visited[nr][nc]) continue;
+                if (!isValidThiefMove(r, c, nr, nc)) continue;
+                visited[nr][nc] = true;
+                queue.add(new int[]{nr, nc});
+            }
+        }
+        return null;
+    }
+
+    private boolean isExitTile(int r, int c) {
+        if (gameBoard[r][c] != 'h') return false;
+        int[][] dirs = {{-1,0},{1,0},{0,-1},{0,1}};
+        for (int[] d : dirs) {
+            int nr = r + d[0];
+            int nc = c + d[1];
+            if (nr >= 0 && nr < NUM_ROWS && nc >= 0 && nc < NUM_COLS) {
+                if (gameBoard[nr][nc] == 't') return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isReachableByThief(int sr, int sc, int tr, int tc, int maxSteps) {
+        boolean[][] visited = new boolean[NUM_ROWS][NUM_COLS];
+        ArrayList<int[]> queue = new ArrayList<>();
+        queue.add(new int[]{sr, sc, 0});
+        visited[sr][sc] = true;
+
+        int[][] dirs = {{-1,0},{1,0},{0,-1},{0,1}};
+
+        while (!queue.isEmpty()) {
+            int[] cur = queue.remove(0);
+            int r = cur[0], c = cur[1], steps = cur[2];
+
+            if (r == tr && c == tc) return true;
+            if (steps >= maxSteps) continue;
+
+            for (int[] d : dirs) {
+                int nr = r + d[0];
+                int nc = c + d[1];
+                if (!isValidTile(nr, nc)) continue;
+                if (visited[nr][nc]) continue;
+                if (!isValidThiefMove(r, c, nr, nc)) continue;
+                visited[nr][nc] = true;
+                queue.add(new int[]{nr, nc, steps + 1});
+            }
         }
         return false;
     }
