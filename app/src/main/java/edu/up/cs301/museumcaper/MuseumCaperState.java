@@ -79,7 +79,7 @@ public class MuseumCaperState extends GameState {
 
     // AI
     public enum AIType { DUMB, SMART }
-    private final AIType aiType = AIType.SMART; // change to DUMB to test
+    private AIType aiType = AIType.SMART; // default, can be changed
     // extra
     private transient Random rng;
 
@@ -1497,6 +1497,9 @@ public class MuseumCaperState extends GameState {
 
     /** @param i the player turn to set (0 = thief, 1 = detective) */
     public void setPlayerTurn(int i) { playerTurn = i; }
+
+    /** @param type the AI type to set */
+    public void setAIType(AIType type) { aiType = type; }
 
     /** @param phase the game phase to set */
     public void setGamePhase(GamePhase phase) { currentPhase = phase; }

@@ -47,9 +47,9 @@ public class MuseumCaperComputerPlayer2 extends MuseumCaperComputerPlayer1 {
      * @param name the player's name
      * @param i
      */
-	public MuseumCaperComputerPlayer2(String name, int i) {
-		super(name, i);
-	}
+    public MuseumCaperComputerPlayer2(String name, int i) {
+        super(name, i);
+    }
 
     /**
      * callback method--game's state has changed
@@ -57,23 +57,12 @@ public class MuseumCaperComputerPlayer2 extends MuseumCaperComputerPlayer1 {
      * @param info
      * the information (presumably containing the game's state)
      */
-	@Override
-	protected void receiveInfo(GameInfo info) {
-		// perform superclass behavior
-		super.receiveInfo(info);
-
-		Log.i("computer player", "receiving");
-
-		// if there is no game, ignore
-		if (game == null) {
-			return;
-		}
-		else if (info instanceof MuseumCaperState) {
-			// if we indeed have a counter-state, update the GUI
-			currentGameState = (MuseumCaperState)info;
-			updateDisplay();
-		}
-	}
+    @Override
+    protected void receiveInfo(GameInfo info) {
+        if (!(info instanceof MuseumCaperState)) return;
+        // tell the game state to use the dumb AI instead of smart
+        ((MuseumCaperState) info).setAIType(MuseumCaperState.AIType.DUMB);
+    }
 
 
 	/**
